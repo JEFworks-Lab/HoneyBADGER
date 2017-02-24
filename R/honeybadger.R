@@ -14,7 +14,7 @@ honeybadger <- setRefClass(
         'gexp.norm', ## gexp.norm normalized gene expression matrix
         'mvFit', ## mvFit estimated expression magnitude variance as a function of number of genes
         'snps', ## snps GenomicRanges representation of snps in r
-        'genePos', ## genePos mapping genes to positions
+        'genes', ## genes GenomicRanges representation of gene positions for genes in gexp.sc
         'geneFactor', ## geneFactor mapping of snps to genes
         'pred.r', ## pred.r matrix of cells and snps affected by cnv
         'bound.snps.old', ## bound.snps.old temporary list of snps within cnv region used during recursion
@@ -35,13 +35,14 @@ honeybadger <- setRefClass(
             gexp.norm <<- NULL;
             mvFit <<- NULL;
             snps <<- NULL;
-            genePos <<- NULL;
+            genes <<- NULL;
             geneFactor <<- NULL;
 
             pred.r <<- NULL
             bound.snps.old <<- c()
             bound.snps.final <<- list()
         },
+        
 
         setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMinBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
             cat("Initializing expression matrices ... \n")
@@ -71,21 +72,31 @@ honeybadger <- setRefClass(
             gexp.norm <<- gexp.sc - refmean
 
             gos <- getBM(values=rownames(gexp.norm),attributes=c("hgnc_symbol", "chromosome_name","start_position","end_position"),filters=c("hgnc_symbol"),mart=mart.obj)
-            gos$pos <- (gos$start_position + gos$end_position)/2
+            ##gos$pos <- (gos$start_position + gos$end_position)/2
             rownames(gos) <- make.unique(gos$hgnc_symbol)
             gos <- gos[rownames(gexp.norm),]
-            genePos <<- gos
+            
+            require(GenomicRanges)
+            if(!grepl('chr', gos$chromosome_name)) {
+                gos$chromosome_name <- paste0('chr', gos$chromosome_name)
+            }
+            gos <- na.omit(gos)
+            genes <- with(gos, GRanges(chromosome_name, IRanges(as.numeric(start_position), as.numeric(end_position)), strand=NULL))
+            names(genes) <- rownames(gos)
+            genes <<- genes
 
             cat("Done setting initial expression matrices! \n")
         },
 
 
-
-        plotGexpProfile=function(chrs=c(as.factor(1:22), 'X'), window.size=101, zlim=c(-2,2), setOrder=FALSE, order=NULL, details=FALSE) {
-            gos <- genePos
+        plotGexpProfile=function(chrs=paste0('chr', c(1:22, 'X')), window.size=101, zlim=c(-2,2), setOrder=FALSE, order=NULL, details=FALSE) {
+            gos <- as.data.frame(genes)
+            pos <- (gos$start+gos$end)/2
+            mat <- gexp.norm
+            
             ## organize into chromosomes
-            tl <- tapply(1:nrow(gos),as.factor(gos$chromosome_name),function(ii) {
-                    na.omit(mat[gos$hgnc_symbol[ii[order(gos$pos[ii],decreasing=F)]],])
+            tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
+                na.omit(mat[rownames(gos)[ii[order(pos[ii],decreasing=F)]],])
             })
             ## only care about these chromosomes
             tl <- tl[chrs]
@@ -127,6 +138,7 @@ honeybadger <- setRefClass(
             }
         },
 
+        
         setMvFit=function(num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE) {
             mean.var.comp <- lapply(num.genes, function(ng) {
                 set.seed(0)
@@ -179,32 +191,29 @@ honeybadger <- setRefClass(
 
         calcGexpCnvProb=function(m=0.15, region=NULL, quiet=TRUE) {
             gexp <- gexp.norm
-            gos <- genePos
+            gos <- genes
             fits <- mvFit
 
             if(!is.null(region)) {
-                ## restrict to genes within region of interest
-                restrict <- function(names, region) {
-                    start <- region$start
-                    end <- region$end
-                    gos <- gos[gos$chromosome_name == region$chr,]
-                    gos$pos <- gos$start_position
-                    gos <- gos[names,]
-                    n <- names[which(gos$pos > start & gos$pos < end)]
-                    n
+                require(GenomicRanges)
+                overlap <- GenomicRanges::findOverlaps(region, gos)
+                # which of the ranges did the position hit
+                hit <- rep(FALSE, length(gos))
+                names(hit) <- names(gos)
+                hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) < 3) {
+                    cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 }
-                vi <- restrict(rownames(gexp), region)
-
-                print('number of genes expessed:')
-                print(length(vi))
-                if(length(vi) <= 1) {
+                vi <- hit                
+                cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+                if(sum(vi) <= 1) {
                     pm <- rep(NA, ncol(gexp))
                     names(pm) <- colnames(gexp)
                     return(list(pm, pm, pm))
                 }
                 gexp <- gexp[vi,]
             }
-
+            
             ## smooth
             ## mat <- apply(gexp, 2, runmean, k=window.size)
             mu0 <- apply(gexp, 2, mean)
@@ -466,7 +475,7 @@ honeybadger <- setRefClass(
             }
             if(!is.null(region)) {
                 require(GenomicRanges)
-                overlap <- GenomicRanges::findOverlaps(gr, snps)
+                overlap <- GenomicRanges::findOverlaps(region, snps)
                 # which of the ranges did the position hit
                 hit <- rep(FALSE, length(snps))
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
@@ -569,7 +578,7 @@ honeybadger <- setRefClass(
             return(pm)
         },
 
-        iterativeHmm=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, init=FALSE) {
+        calcCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, init=FALSE) {
             if(!is.null(r.sub)) {
                 r.maf <- r.sub
                 geneFactor <- geneFactor[rownames(r.maf)]
@@ -590,6 +599,11 @@ honeybadger <- setRefClass(
                 colnames(pred.r) <<- colnames(r.maf)
                 bound.snps.old <<- c()
                 bound.snps.final <<- list()
+            }
+
+            if(is.null(pred.r)) {
+                cat('ERROR! USE init=TRUE! ')
+                return()
             }
 
             ## remove old bound snps
@@ -672,14 +686,13 @@ honeybadger <- setRefClass(
             tbv <- as.vector(tb); names(tbv) <- names(tb)
             tbv <- tbv[-1] # get rid of 0
 
-            ## all detected deletions have fewer than 10 SNPs...reached the end
             ## all detected deletions have fewer than 5 genes...reached the end
-            tbv[tbv < 5] <- NA
+            tbv[tbv < min.num.snps] <- NA
             tbv <- na.omit(tbv)
             if(length(tbv)==0) {
                 return()
             }
-            print(tbv)
+            cat(tbv)
 
             ## test each of these highly confident deletions
             del.prob.info <- lapply(names(tbv), function(ti) {
