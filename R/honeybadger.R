@@ -48,7 +48,7 @@ honeybadger <- setRefClass(
             bound.genes.old <<- c()
             bound.genes.final <<- list()
         },
-        
+
 
         setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMinBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
             cat("Initializing expression matrices ... \n")
@@ -81,7 +81,7 @@ honeybadger <- setRefClass(
             ##gos$pos <- (gos$start_position + gos$end_position)/2
             rownames(gos) <- make.unique(gos$hgnc_symbol)
             gos <- gos[rownames(gexp.norm),]
-            
+
             require(GenomicRanges)
             if(!grepl('chr', gos$chromosome_name)) {
                 gos$chromosome_name <- paste0('chr', gos$chromosome_name)
@@ -102,7 +102,7 @@ honeybadger <- setRefClass(
             gos <- as.data.frame(genes)
             pos <- (gos$start+gos$end)/2
             mat <- gexp.norm
-            
+
             ## organize into chromosomes
             tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
                 na.omit(mat[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],])
@@ -113,7 +113,7 @@ honeybadger <- setRefClass(
             ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
             #chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
             #l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
-            l <- layout(matrix(seq(1,length(tlsub)),1,length(tlsub),byrow=T))
+            l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=T))
 
             if(setOrder) {
                 avgd <- do.call(rbind, lapply(names(tl),function(nam) {
@@ -146,7 +146,7 @@ honeybadger <- setRefClass(
             }
         },
 
-        
+
         setMvFit=function(num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE) {
             mean.var.comp <- lapply(num.genes, function(ng) {
                 set.seed(0)
@@ -204,7 +204,7 @@ honeybadger <- setRefClass(
                 genes <- genes[rownames(gexp.norm.sub)]
                 mvFit <- mvFit[colnames(gexp.norm.sub)]
             }
-            
+
             gexp <- gexp.norm
             gos <- genes
             fits <- mvFit
@@ -219,7 +219,7 @@ honeybadger <- setRefClass(
                 if(sum(hit) < 3) {
                     cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 }
-                vi <- hit                
+                vi <- hit
                 cat(paste0("restricting to ", sum(vi), " genes in region \n"))
                 if(sum(vi) <= 1) {
                     pm <- rep(NA, ncol(gexp))
@@ -228,7 +228,7 @@ honeybadger <- setRefClass(
                 }
                 gexp <- gexp[vi,]
             }
-            
+
             ## smooth
             ## mat <- apply(gexp, 2, runmean, k=window.size)
             mu0 <- apply(gexp, 2, mean)
@@ -593,7 +593,7 @@ honeybadger <- setRefClass(
             return(pm)
         },
 
-        
+
         calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, min.traverse=3, min.num.genes=5, init=FALSE) {
             if(!is.null(gexp.norm.sub)) {
                 gexp.norm <- gexp.norm.sub
@@ -616,10 +616,10 @@ honeybadger <- setRefClass(
             gexp.norm <- gexp.norm[vi,]
 
             ## order
-            gos <- as.data.frame(genes)
+            gos <- as.data.frame(genes)[rownames(gexp.norm),]
             chrs=paste0('chr', c(1:22, 'X'))
             tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
-                na.omit(mat[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],])
+                na.omit(gexp.norm[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],])
             })
             tl <- tl[chrs]
             gexp.norm <- do.call(rbind, lapply(tl, function(x) x))
@@ -636,7 +636,7 @@ honeybadger <- setRefClass(
             heights <- 1:min(min.traverse, ncol(gexp.norm))
             ## cut tree at various heights to establish groups
             boundgenes.pred <- lapply(heights, function(h) {
-                
+
                 ct <- cutree(hc, k = h)
 
                 cuts <- unique(ct)
@@ -645,7 +645,7 @@ honeybadger <- setRefClass(
                 boundgenes.pred <- lapply(cuts, function(group) {
                     if(sum(ct==group)>1) {
                         mat.smooth <- apply(gexp.norm[, ct==group], 1, mean)
-                        
+
                         ## change point
                         delta <- c(0, 1, 0)
                         require(HiddenMarkov)
@@ -660,14 +660,14 @@ honeybadger <- setRefClass(
                         ampgenes <- names(mat.smooth)[which(results==3)]
                         delgenes <- names(mat.smooth)[which(results==1)]
                         boundgenes <- list('amp'=ampgenes, 'del'=delgenes)
-                        
+
                         return(boundgenes)
                     }
                 })
-                
+
             })
             boundgenes.pred <- unlist(boundgenes.pred, recursive=FALSE)
-            
+
             getTbv <- function(boundgenes.pred) {
                 foo <- rep(0, nrow(gexp.norm)); names(foo) <- rownames(gexp.norm)
                 foo[unique(unlist(boundgenes.pred))] <- 1
@@ -678,12 +678,12 @@ honeybadger <- setRefClass(
                     vote[b] <<- vote[b] + 1
                 })
                 vote[bound.genes.old] <- 0 ## do not want to rediscover old bounds
-                
+
                 print(paste0('max vote:', max(vote)))
                 if(max(vote)==0) {
                     return() ## exit iteration, no more bound SNPs found
                 }
-                
+
                 vote[vote > 0] <- 1
                 mv <- 1 ## at least 1 vote
                 cs <- 1
@@ -700,30 +700,30 @@ honeybadger <- setRefClass(
                 tb <- table(bound.genes.cont)
                 tbv <- as.vector(tb); names(tbv) <- names(tb)
                 tbv <- tbv[-1] # get rid of 0
-                
+
                 ## all detected deletions have fewer than 5 genes...reached the end
                 tbv[tbv < min.num.genes] <- NA
                 tbv <- na.omit(tbv)
                 if(length(tbv)==0) {
                     return()
                 }
-                
+
                 ## test each of these highly confident deletions
                 prob.info <- lapply(names(tbv), function(ti) {
                     bound.genes.new <- names(bound.genes.cont)[bound.genes.cont == ti]
-                    
+
                     cat('GENES AFFECTED BY CNV: ')
                     cat(bound.genes.new)
-                    
+
                     ## now that we have boundaries, run on all cells
                     prob <- calcGexpCnvProb(gexp.norm.sub=gexp.norm[bound.genes.new, ])
-                    
+
                     cat("AMPLIFICATION PROBABILITY: ")
                     print(prob[[1]])
-                    
+
                     cat("DELETION PROBABILITY: ")
                     print(prob[[2]])
-                    
+
                     return(list('ap'=prob[[1]], 'dp'=prob[[2]], 'bs'=bound.genes.new))
                 })
                 print(prob.info)
@@ -739,7 +739,7 @@ honeybadger <- setRefClass(
 
             prob.bin <- prob <- rbind(del.prob, amp.prob)
             bound.genes.list <- c(del.bound.genes.list, amp.bound.genes.list)
-            
+
             if(sum(prob < 0.25) > 0) {
                 prob.bin[prob < 0.25] <- 0
             }
@@ -750,7 +750,7 @@ honeybadger <- setRefClass(
                 prob.bin[prob <= 0.75 & prob >= 0.25] <- NA
             }
 
-            if(ncol(prob.bin>1)) {
+            if(ncol(prob.bin)>1) {
                 dps <- rowSums(prob.bin, na.rm=TRUE)
                 dpsi <- which(dps == max(dps))[1] ## pick one of the most clonal
                 prob.fin <- t(as.matrix(prob[dpsi,]))
@@ -795,9 +795,9 @@ honeybadger <- setRefClass(
                 tryCatch({
                     calcGexpCnvBoundaries(gexp.norm.sub=gexp.norm[, g2])
                 }, error = function(e) { print("error detected"); print(e) })
-            }            
+            }
 
-            
+
         },
 
         calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, init=FALSE) {
@@ -1009,6 +1009,33 @@ honeybadger <- setRefClass(
                                  n.bulk.sub=rowSums(n.sc[, g2]>0)
                                  )
                 }, error = function(e) { print("error detected"); print(e) })
+            }
+        },
+
+        
+        retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, trimGenes=3, trimSnps=3) {
+            if(retestBoundGenes & length(bound.genes.final)==0) {
+                cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
+            } else {
+                retest <- lapply(seq_along(bound.genes.final), function(i) {
+                    bgs <- bound.genes.final[[i]][[1]]
+                    bgs <- bgs[trimGenes:(length(bgs)-trimGenes)]
+                    x <- calcGexpCnvProb(gexp.norm[bgs,])
+                    list(x[[1]], x[[2]])
+                })
+                return(retest)
+            }
+
+            if(retestBoundSnps & length(bound.snps.final)==0) {
+                cat('ERROR NO SNPS AFFECTED BY CNVS IDENTIFIED! Run calcAlleleCnvBoundaries()? ')
+            } else {
+                retest <- lapply(seq_along(bound.snps.final), function(i) {
+                    bgs <- bound.snps.final[[i]][[1]]
+                    bgs <- bgs[trimSnps:(length(bgs)-trimSnps)]
+                    x <- calcAlleleCnvProb(r.sub=r[bgs,], n.sc.sub=n.sc[bgs,], l.sub=l[bgs], n.bulk.sub=n.bulk[bgs])
+                    x
+                })
+                return(retest)                
             }
         }
 
