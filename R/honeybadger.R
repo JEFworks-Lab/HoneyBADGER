@@ -29,9 +29,13 @@ honeybadger <- setRefClass(
         'results' ## results retested posterior probabilities
     ),
 
-    methods = list(
+    methods = list(        
 
-        initialize=function() {
+        initialize=function(x=NULL, ...) {
+            if(!is.null(x) && class(x)=='HoneyBADGER') {
+                callSuper(x, ...)
+            }
+            
             r <<- NULL;
             n.sc <<- NULL;
             l <<- NULL;
@@ -245,6 +249,10 @@ honeybadger <- setRefClass(
                 hit <- rep(FALSE, length(gos))
                 names(hit) <- names(gos)
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) <= 1) {
+                    cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
+                    return();
+                }
                 if(sum(hit) < 3) {
                     cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 }
@@ -354,7 +362,7 @@ honeybadger <- setRefClass(
                 r <<- r.init
                 n.sc <<- n.sc.init
             }
-            if(is.null(r.maf) | is.null(l.maf)) {
+            if(is.null(r.maf) | is.null(l.maf) | !is.null(r.init) | !is.null(l.init)) {
                 cat("setting composite minor allele count ... \n")
                 E <- l/n.bulk
                 n <- nrow(r)
@@ -389,7 +397,32 @@ honeybadger <- setRefClass(
                 rownames(mat) <- rownames(r)
                 colnames(mat) <- colnames(r)
                 r.maf <<- mat
-                l.maf <<- rowSums(r.maf>0)
+
+                mat <- sapply(1:n, function(i) {
+                    li <- l[i]
+                    n.bulki <- n.bulk[i]
+                    Ei <- E[i]
+                    if(is.na(Ei)) {
+                        mut.frac <- 0
+                    }
+                    else if(Ei <= 0.5) {
+                        mut.frac <- li
+                    }
+                    else if(Ei > 0.5) {
+                        mut.frac <- n.bulki-li
+                    }
+                    else {
+                        mut.frac <- 0
+                    }
+                    
+                    ## f will be high if inconsistent
+                    ## f will be low if consistent
+                    ## f will be NaN if no coverage
+                    ## use colorRamp from green to red
+                    f <- mut.frac
+                    return(f)
+                })
+                l.maf <<- mat
             }
 
             snps.df <- rownames(r)
@@ -524,6 +557,10 @@ honeybadger <- setRefClass(
                 # which of the ranges did the position hit
                 hit <- rep(FALSE, length(snps))
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) <= 1) {
+                    cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+                    return();
+                }
                 if(sum(hit) < 10) {
                     cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 }
@@ -1080,6 +1117,10 @@ honeybadger <- setRefClass(
                 hit <- rep(FALSE, length(gos))
                 names(hit) <- names(gos)
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) <= 1) {
+                    cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
+                    return();
+                }
                 if(sum(hit) < 3) {
                     cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 }
@@ -1098,6 +1139,10 @@ honeybadger <- setRefClass(
                 # which of the ranges did the position hit
                 hit <- rep(FALSE, length(snps))
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) <= 1) {
+                    cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+                    return();
+                }
                 if(sum(hit) < 10) {
                     cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 }
@@ -1230,7 +1275,7 @@ honeybadger <- setRefClass(
         },
         
 
-        retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE) {
+        retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE) {
             if(retestBoundGenes) {
                 cat('Retesting bound genes ... ')
                 if(length(bound.genes.final)==0) {
@@ -1248,8 +1293,6 @@ honeybadger <- setRefClass(
                         list(x[[1]], x[[2]])
                     })
                     results[['gene-based']] <<- retest
-
-                    return(retest)
                 }
             }
 
@@ -1270,7 +1313,6 @@ honeybadger <- setRefClass(
                         x
                     })
                     results[['allele-based']] <<- retest
-                    return(retest)
                 }
             }
 
@@ -1287,15 +1329,17 @@ honeybadger <- setRefClass(
 
                 gr <- range(genes[unlist(bound.genes.final),])
                 sr <- range(snps[unlist(bound.snps.final),])
-                rgs <- intersect(gr, sr)
-
+                if(intersect) {
+                    rgs <- intersect(gr, sr)
+                } else {
+                    rgs <- union(gr, sr)
+                }
+                
                 retest <- lapply(seq_len(length(rgs)), function(i) {
                     x <- calcCombCnvProb(region=rgs[i])
                     list(x[[1]], x[[2]])
                 })
                 results[['combine-based']] <<- retest
-
-                return(retest)
             }
         },
 
