@@ -1,3 +1,7 @@
+#' A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
+#'
+#' @export
+#' 
 honeybadger <- setRefClass(
 
     "honeybadger",
@@ -56,18 +60,18 @@ honeybadger <- setRefClass(
         setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMinBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
             cat("Initializing expression matrices ... \n")
 
-            genes <- intersect(rownames(gexp.sc.init), rownames(gexp.ref.init))
-            if(length(genes) < 10) {
+            vi <- intersect(rownames(gexp.sc.init), rownames(gexp.ref.init))
+            if(length(vi) < 10) {
                 cat('WARNING! GENE NAMES IN EXPRESSION MATRICES DO NOT SEEM TO MATCH! \n')
             }
-            gexp.sc <<- gexp.sc.init[genes,]
-            gexp.ref <<- gexp.ref.init[genes,]
+            gexp.sc <<- gexp.sc.init[vi,]
+            gexp.ref <<- gexp.ref.init[vi,]
 
             if(filter) {
                 vi <- (rowMeans(gexp.sc) > minMeanBoth & rowMeans(gexp.ref) > minMeanBoth) | rowMeans(gexp.sc) > minMeanTest | rowMeans(gexp.ref) > minMeanRef
                 cat(paste0(sum(vi), " genes passed filtering ... \n"))
-                gexp.sc <- gexp.sc[vi,]
-                gexp.ref <- gexp.ref[vi,]
+                gexp.sc <<- gexp.sc[vi,]
+                gexp.ref <<- gexp.ref[vi,]
             }
             if(scale) {
                 cat("scaling coverage ... \n")
@@ -76,7 +80,7 @@ honeybadger <- setRefClass(
                 mat.ref <- scale(mat.ref)
             }
 
-            cat(paste0("normalizing gene expression for ", length(genes), " genes and ", ncol(gexp.sc), " cells ... \n"))
+            cat(paste0("normalizing gene expression for ", ncol(gexp.sc), " genes and ", ncol(gexp.sc), " cells ... \n"))
             refmean <- rowMeans(gexp.ref)
             gexp.norm <<- gexp.sc - refmean
 
@@ -90,9 +94,9 @@ honeybadger <- setRefClass(
                 gos$chromosome_name <- paste0('chr', gos$chromosome_name)
             }
             gos <- na.omit(gos)
-            genes <- with(gos, GRanges(chromosome_name, IRanges(as.numeric(start_position), as.numeric(end_position)), strand=NULL))
-            names(genes) <- rownames(gos)
-            genes <<- genes
+            gs <- with(gos, GRanges(chromosome_name, IRanges(as.numeric(start_position), as.numeric(end_position)), strand=NULL))
+            names(gs) <- rownames(gos)
+            genes <<- gs
 
             ## remove genes with no position information
             gexp.norm <<- gexp.norm[names(genes),]
@@ -267,7 +271,7 @@ honeybadger <- setRefClass(
                 'sigma0' = sigma0,
                 'mag0' = m
             )
-            modelFile <-  system.file("bug", "expressionModel.bug", package = "badger")
+            modelFile <-  system.file("bug", "expressionModel.bug", package = "HoneyBADGER")
 
             cat('Initializing model ... \n')
             ##model <- jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
@@ -599,11 +603,10 @@ honeybadger <- setRefClass(
                 'pseudo' = pe,
                 'mono' = mono)
 
-            ##modelFile <- system.file("bug", "snpModel.bug", package = "badger")
-            modelFile <- "/home/jfan/Projects/badger/inst/bug/snpModel.bug"
+            modelFile <- system.file("bug", "snpModel.bug", package = "HoneyBADGER")
 
             cat('Running model ... \n')
-            require('rjags')
+            require(rjags)
             model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
             update(model, 300, progress.bar=ifelse(quiet,"none","text"))
             cat('Done modeling!')

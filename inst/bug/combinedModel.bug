@@ -1,0 +1,72 @@
+model {
+
+    ## Likelihood
+
+    ## Single cell
+    for( k in 1:K ) {
+
+        ## Gene level
+        for ( j in 1:J ) {
+
+            ## SNP level
+            for( i in 1:I.j[j] ) {
+                r[j,i,k] ~ dbin(p[j,i,k], n.sc[j,i,k])
+
+                ## S[k] * (1-dd[k]) is 1 if deletion, 0 if amplification or neutral
+                ## if has deletion, then bias has no effect since only one allele to express
+                ## the one allele expressed should be consistent with bulk (fma[j,i])
+                ## if no deletion, then there could no bias, and we just see both alleles
+                ## or there could be mono-allelic expression in either direction
+                ## pseudo is the error rate
+                ## note p[j,i,k] is bounded between pseudo and 1-pseudo
+                p[j,i,k] <- (S[k] * (1-dd)) * fma[j,i] +
+                      ( 1 - (S[k] * (1-dd)) ) * (
+                                            ( 1 - b[j,k] ) * h[j,i,k] +
+                                            b[j,k] * ( pseudo * d[j,k] + ( 1 - pseudo ) * ( 1 - d[j,k] ) )
+                                          )
+                h[j,i,k] ~ dnorm(0.5,0.1)T(pseudo, 1-pseudo) ## heterozygous snp prob; used to just set to 0.5 but should allow for some wiggle room
+            }
+            ## Need to fully define in order to pull out from model even if not used
+            for( i in I.j[j]+1:max(I.j) ) {
+                p[j,i,k] <- 0
+                h[j,i,k] <- 0
+            }
+            ## If there is a deletion, decrease mean by some factor
+            d[j,k] ~ dbern(0.5) ## random direction of bias
+            delta[j,k] ~ dunif(0,1) ## random degree of bias
+            b[j,k] ~ dbern(mono) ## probability of mono-allelic expression
+        }
+
+        ## Gene level
+        for ( j in 1:JJ ) {
+
+            ## Expression level
+            gexp[j, k] ~ dnorm(mu[j,k], sigma0[k])
+            # 0 if neutral
+            # + mag if amplification
+            # - mag if deletion
+            mu[j,k] <- 0 * ( 1 - S[k] ) +
+                -mag0 * ( S[k] * (1 - dd) ) +
+                mag0 * ( S[k] * dd )
+        }
+
+        S[k] ~ dbern(alpha[k]) # cnv or not
+        alpha[k] ~ dunif(0,1) # cell specific hyper-parameter prior to allow for better mixing
+    }
+
+    ## Bulk
+    for ( j in 1:J ) {
+        for( i in 1:I.j[j] ) {
+            l[j,i] ~ dbin(fma[j,i], n.bulk[j,i]) # minor allele
+            fma[j,i] <- pseudo*(ma[j,i]) + (1-pseudo)*(1-ma[j,i]) # prob of observing minor allele
+            ma[j,i] ~ dbern(0.5) # whether minor allele is affected, each is independent
+        }
+        for( i in I.j[j]+1:max(I.j) ) {
+           fma[j,i] <- 0
+           ma[j,i] <- 0
+        }
+    }
+
+    dd ~ dbern(beta) # direction of cnv
+    beta ~ dunif(0,1) # cell specific hyper-parameter
+}

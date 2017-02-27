@@ -1,0 +1,24 @@
+model {
+    ## Likelihood
+    ## Single cell
+    for( k in 1:K ) {
+
+        for ( j in 1:JJ ) {
+            ## Expression level
+            gexp[j, k] ~ dnorm(mu[k], sigma0[k])
+        }
+
+            # 0 if neutral
+            # + mag if amplification
+            # - mag if deletion
+            mu[k] <- 0 * ( 1 - S[k] ) +
+                -mag0 * ( S[k] * (1 - dd)) +
+                mag0 * ( S[k] * dd)
+
+        ## Cell level
+        S[k] ~ dbern(alpha[k]) # cnv or not
+        alpha[k] ~ dunif(0,1) # cell specific hyper-parameter prior to allow for better mixing
+    }
+    dd ~ dbern(beta) # direction of cnv
+    beta ~ dunif(0,1) # cell specific hyper-parameter
+}
