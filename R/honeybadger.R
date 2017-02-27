@@ -1,7 +1,7 @@
 #' A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
 #'
 #' @export
-#' 
+#'
 honeybadger <- setRefClass(
 
     "honeybadger",
@@ -80,7 +80,7 @@ honeybadger <- setRefClass(
                 mat.ref <- scale(mat.ref)
             }
 
-            cat(paste0("normalizing gene expression for ", ncol(gexp.sc), " genes and ", ncol(gexp.sc), " cells ... \n"))
+            cat(paste0("normalizing gene expression for ", nrow(gexp.sc), " genes and ", ncol(gexp.sc), " cells ... \n"))
             refmean <- rowMeans(gexp.ref)
             gexp.norm <<- gexp.sc - refmean
 
@@ -110,7 +110,7 @@ honeybadger <- setRefClass(
                 gexp.norm <- gexp.norm.sub
                 genes <- genes[rownames(gexp.norm.sub)]
             }
-                        
+
             gos <- as.data.frame(genes)
             mat <- gexp.norm
 
@@ -120,7 +120,7 @@ honeybadger <- setRefClass(
             })
             ## only care about these chromosomes
             tl <- tl[chrs]
-            
+
             if(!is.null(gexp.norm.sub)) {
                 ## remove empty; need more than 1 gene
                 vi <- unlist(lapply(tl, function(x) {
@@ -128,8 +128,8 @@ honeybadger <- setRefClass(
                     else { return(nrow(x)>1) }
                 }))
                 tl <- tl[vi]
-            }            
-            
+            }
+
             ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
             #chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
             #l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
@@ -139,7 +139,7 @@ honeybadger <- setRefClass(
                 widths <- rep(1, length(tl))
             }
             l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=TRUE), widths=widths)
-            
+
             if(setOrder) {
                 avgd <- do.call(rbind, lapply(names(tl),function(nam) {
                     d <- tl[[nam]]
@@ -174,6 +174,7 @@ honeybadger <- setRefClass(
 
 
         setMvFit=function(num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE) {
+            cat('Modeling expected variance ... ')
             mean.var.comp <- lapply(num.genes, function(ng) {
                 set.seed(0)
                 m <- do.call(rbind, lapply(1:rep, function(i) {
@@ -222,7 +223,9 @@ honeybadger <- setRefClass(
             })
             names(fits) <- colnames(gexp.norm)
             mvFit <<- fits
+            cat('Done!')
         },
+
 
         calcGexpCnvProb=function(gexp.norm.sub=NULL, m=0.15, region=NULL, quiet=TRUE) {
             if(!is.null(gexp.norm.sub)) {
@@ -1044,7 +1047,189 @@ honeybadger <- setRefClass(
             }
         },
 
+
+        calcCombCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, gexp.norm.sub=NULL, m=0.15, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE) {
+            if(!is.null(r.sub)) {
+                r.maf <- r.sub
+                geneFactor <- geneFactor[rownames(r.sub)]
+                snps <- snps[rownames(r.sub),]
+            }
+            if(!is.null(n.sc.sub)) {
+                n.sc <- n.sc.sub
+            }
+            if(!is.null(l.sub)) {
+                l.maf <- l.sub
+            }
+            if(!is.null(n.bulk.sub)) {
+                n.bulk <- n.bulk.sub
+            }
+            if(!is.null(gexp.norm.sub)) {
+                gexp.norm <- gexp.norm.sub
+                genes <- genes[rownames(gexp.norm.sub)]
+                mvFit <- mvFit[colnames(gexp.norm.sub)]
+            }            
+            gexp <- gexp.norm
+            gos <- genes
+            fits <- mvFit
+
+            if(!is.null(region)) {
+                ## limit gexp
+                require(GenomicRanges)
+                overlap <- GenomicRanges::findOverlaps(region, gos)
+                # which of the ranges did the position hit
+                hit <- rep(FALSE, length(gos))
+                names(hit) <- names(gos)
+                hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) < 3) {
+                    cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
+                }
+                vi <- hit
+                cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+                if(sum(vi) <= 1) {
+                    pm <- rep(NA, ncol(gexp))
+                    names(pm) <- colnames(gexp)
+                    return(list(pm, pm, pm))
+                }
+                gexp <- gexp[vi,]
+
+                ## limit snp mats
+                require(GenomicRanges)
+                overlap <- GenomicRanges::findOverlaps(region, snps)
+                # which of the ranges did the position hit
+                hit <- rep(FALSE, length(snps))
+                hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+                if(sum(hit) < 10) {
+                    cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+                }
+                vi <- hit
+                r.maf <- r.maf[vi,]
+                n.sc <- n.sc[vi,]
+                l.maf <- l.maf[vi]
+                n.bulk <- n.bulk[vi]
+                geneFactor <- geneFactor[vi]
+                snps <- snps[vi,]
+            }
+            if(filter) {
+                ## filter out snps without coverage
+                vi <- rowSums(n.sc) > 0
+                r.maf <- r.maf[vi,]
+                n.sc <- n.sc[vi,]
+                l.maf <- l.maf[vi]
+                n.bulk <- n.bulk[vi]
+                geneFactor <- geneFactor[vi]
+                snps <- snps[vi,]
+            }
+
+            gexp <- gexp[, colnames(r.maf)]
+            
+            cat('Assessing posterior probability of CNV in region ... \n')
+            cat(paste0('with ', nrow(gexp), ' genes ... '))
+            cat(paste0('and ', length(n.bulk), ' snps ... '))
+
+            genes.of.interest <- unique(geneFactor)
+            cat(paste0('within ', length(genes.of.interest), ' genes ... \n'))
+
+            ## associate each gene factor with a set of snps
+            genes2snps.dict <- lapply(seq_along(genes.of.interest), function(i) {
+                names(geneFactor)[which(geneFactor %in% genes.of.interest[i])]
+            })
+            names(genes2snps.dict) <- genes.of.interest
+
+            ## smooth
+            ## mat <- apply(gexp, 2, runmean, k=window.size)
+            mu0 <- apply(gexp, 2, mean)
+            ng <- nrow(gexp)
+            sigma0 <- unlist(lapply(fits, function(fit) sqrt(10^predict(fit, newdata=data.frame(x=ng), interval="predict")[, 'fit'])))
+            ##gexp <- rbind(apply(gexp, 2, mean), apply(gexp, 2, median))
+                        
+            cat('converting to multi-dimensional arrays...')
+
+            ## Convert to multi-dimensions based on j
+            I.j <- unlist(lapply(genes2snps.dict, length))
+            numGenes <- length(genes2snps.dict)
+            numSnpsPerGene <- max(I.j)
+            numCells <- ncol(r)
+            ## j, i, k
+            r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
+            for(i in seq_len(numGenes)) {
+                snps <- genes2snps.dict[[i]]
+                for(s in seq_along(snps)) {
+                    r.array[i,s,] <- r[snps[s],]
+                }
+            }
+            n.sc.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
+            for(i in seq_len(numGenes)) {
+                snps <- genes2snps.dict[[i]]
+                for(s in seq_along(snps)) {
+                    n.sc.array[i,s,] <- n.sc[snps[s],]
+                }
+            }
+            l.array <- array(0, c(numGenes, numSnpsPerGene))
+            for(i in seq_len(numGenes)) {
+                snps <- genes2snps.dict[[i]]
+                for(s in seq_along(snps)) {
+                    l.array[i,s] <- l[snps[s]]
+                }
+            }
+            n.bulk.array <- array(0, c(numGenes, numSnpsPerGene))
+            for(i in seq_len(numGenes)) {
+                snps <- genes2snps.dict[[i]]
+                for(s in seq_along(snps)) {
+                    n.bulk.array[i,s] <- n.bulk[snps[s]]
+                }
+            }
+            
+            cat('aggregating data to list...')
+            data <- list(
+                'l' = l.array,
+                'r' = r.array,
+                'n.bulk' = n.bulk.array,
+                'n.sc' = n.sc.array,
+                'J' = length(I.j),  # how many genes
+                'K' = ncol(r),  # how many cells
+                'I.j' = I.j,
+                'pseudo' = pe,
+                'mono' = mono,
+                ## expression
+                'gexp' = gexp,
+                'JJ' = nrow(gexp),
+                'sigma0' = sigma0,
+                'mag0' = m
+                #'mu0'  = mu0,
+                #'sigma0' = sigma0
+                #'t' = mu0/2
+            )
+            
+            modelFile <- system.file("bug", "combinedModel.bug", package = "HoneyBADGER")
+            
+            cat('Initializing model...')
+            require(rjags)
+            model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
+            update(model, 300, progress.bar=ifelse(quiet,"none","text"))
+            
+            parameters <- c('S', 'dd')
+            samples <- coda.samples(model, parameters, n.iter=300, progress.bar=ifelse(quiet,"none","text"))
+            samples <- do.call(rbind, samples) # combine chains
+            
+            snpLike <- samples
+            v <- colnames(snpLike)
+            S <- snpLike[,grepl('S', v)]
+            dd <- snpLike[,grepl('dd', v)]
+            ##plot(mu0, colMeans(mu))
+            delcall <- apply(S*(1-dd), 2, mean)
+            delcall
+            ampcall <- apply(S*dd, 2, mean)
+            ampcall
+            ##plot(mu0, delcall)
+            ##plot(mu0, ampcall)
+            names(ampcall) <- names(delcall) <- colnames(gexp)
+
+            return(list('posterior probability of amplification'=ampcall,
+                        'posterior probability of deletion'=delcall)
+                   )
+        },
         
+
         retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE) {
             if(retestBoundGenes) {
                 cat('Retesting bound genes ... ')
@@ -1063,11 +1248,11 @@ honeybadger <- setRefClass(
                         list(x[[1]], x[[2]])
                     })
                     results[['gene-based']] <<- retest
-                    
+
                     return(retest)
                 }
             }
-            
+
             if(retestBoundSnps) {
                 cat('Retesting bound snps ... ')
                 if(length(bound.snps.final)==0) {
@@ -1085,8 +1270,32 @@ honeybadger <- setRefClass(
                         x
                     })
                     results[['allele-based']] <<- retest
-                    return(retest)                
+                    return(retest)
                 }
+            }
+
+            if(retestBoundSnps & retestBoundGenes) {
+                cat('Retesting bound snps and genes using joint model')
+                if(length(bound.genes.final)==0) {
+                    cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
+                    return();
+                }
+                if(length(bound.snps.final)==0) {
+                    cat('ERROR NO SNPS AFFECTED BY CNVS IDENTIFIED! Run calcAlleleCnvBoundaries()? ')
+                    return();
+                }
+
+                gr <- range(genes[unlist(bound.genes.final),])
+                sr <- range(snps[unlist(bound.snps.final),])
+                rgs <- intersect(gr, sr)
+
+                retest <- lapply(seq_len(length(rgs)), function(i) {
+                    x <- calcCombCnvProb(region=rgs[i])
+                    list(x[[1]], x[[2]])
+                })
+                results[['combine-based']] <<- retest
+
+                return(retest)
             }
         },
 
@@ -1099,7 +1308,7 @@ honeybadger <- setRefClass(
                 del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
                 colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
                 colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
-                df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)            
+                df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)
             }
             if(alleleBased & !geneBased) {
                 rgs <- range(snps[unlist(bound.snps.final),])
@@ -1109,7 +1318,16 @@ honeybadger <- setRefClass(
                 df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
             }
             if(alleleBased & geneBased) {
-                ## TODO
+                gr <- range(genes[unlist(bound.genes.final),])
+                sr <- range(snps[unlist(bound.snps.final),])
+                rgs <- intersect(gr, sr)
+
+                retest <- results[['combine-based']]
+                amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
+                del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
+                colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
+                colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
+                df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
             }
             return(df)
         }
