@@ -21,7 +21,8 @@ honeybadger <- setRefClass(
         'bound.snps.old', ## bound.snps.old temporary list of snps within cnv region used during recursion
         'bound.snps.final', ## bound.snps.final list of snps within cnv region
         'bound.genes.old', ## bound.snps.old temporary list of snps within cnv region used during recursion
-        'bound.genes.final' ## bound.snps.final list of snps within cnv region
+        'bound.genes.final', ## bound.snps.final list of snps within cnv region
+        'results' ## results retested posterior probabilities
     ),
 
     methods = list(
@@ -47,6 +48,8 @@ honeybadger <- setRefClass(
             bound.snps.final <<- list()
             bound.genes.old <<- c()
             bound.genes.final <<- list()
+
+            results <<- list()
         },
 
 
@@ -98,23 +101,41 @@ honeybadger <- setRefClass(
         },
 
 
-        plotGexpProfile=function(chrs=paste0('chr', c(1:22, 'X')), window.size=101, zlim=c(-2,2), setOrder=FALSE, order=NULL, details=FALSE) {
+        plotGexpProfile=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22, 'X')), window.size=101, zlim=c(-2,2), setOrder=FALSE, setWidths=FALSE, order=NULL, details=FALSE) {
+            if(!is.null(gexp.norm.sub)) {
+                gexp.norm <- gexp.norm.sub
+                genes <- genes[rownames(gexp.norm.sub)]
+            }
+                        
             gos <- as.data.frame(genes)
-            pos <- (gos$start+gos$end)/2
             mat <- gexp.norm
 
             ## organize into chromosomes
             tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
-                na.omit(mat[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],])
+                na.omit(mat[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],,drop=FALSE])
             })
             ## only care about these chromosomes
             tl <- tl[chrs]
-
+            
+            if(!is.null(gexp.norm.sub)) {
+                ## remove empty; need more than 1 gene
+                vi <- unlist(lapply(tl, function(x) {
+                    if(is.null(x)) { return(FALSE) }
+                    else { return(nrow(x)>1) }
+                }))
+                tl <- tl[vi]
+            }            
+            
             ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
             #chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
             #l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
-            l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=T))
-
+            if(setWidths) {
+                widths <- sapply(tl, nrow); widths <- widths/max(widths)*100
+            } else {
+                widths <- rep(1, length(tl))
+            }
+            l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=TRUE), widths=widths)
+            
             if(setOrder) {
                 avgd <- do.call(rbind, lapply(names(tl),function(nam) {
                     d <- tl[[nam]]
@@ -138,7 +159,8 @@ honeybadger <- setRefClass(
                     d <- d[, order]
                 }
                 par(mar = c(0.5,0.2,3.0,0.2), mgp = c(2,0.65,0), cex = 0.8)
-                image(1:nrow(d),1:ncol(d),d,col=pcol,zlim=zlim,xlab="",ylab="",axes=F,main=nam); box()
+                image(seq_len(nrow(d)), seq_len(ncol(d)), d, col=pcol, zlim=zlim, xlab="", ylab="", axes=FALSE, main=nam)
+                box()
             })
 
             if(details) {
@@ -264,7 +286,7 @@ honeybadger <- setRefClass(
             samples <- coda.samples(model, parameters, n.iter=1000, progress.bar=ifelse(quiet,"none","text"))
             samples <- do.call(rbind, samples) # combine chains
 
-            print('...Done!')
+            cat('...Done!')
 
             snpLike <- samples
             v <- colnames(snpLike)
@@ -374,7 +396,7 @@ honeybadger <- setRefClass(
                 snps.df[,1] <- paste0('chr', snps.df[,1])
             }
             snps <<- with(snps.df, GRanges(chr, IRanges(as.numeric(start), as.numeric(end)), strand=NULL))
-            rownames(r) <<- rownames(r.maf) <<- rownames(n.sc) <<- names(l) <<- names(l.maf) <<- names(n.bulk) <<- paste0(snps)
+            names(snps) <<- rownames(r) <<- rownames(r.maf) <<- rownames(n.sc) <<- names(l) <<- names(l.maf) <<- names(n.bulk) <<- paste0(snps)
 
             cat("Done setting initial allele matrices! \n")
         },
@@ -408,7 +430,7 @@ honeybadger <- setRefClass(
             }
             if(!is.null(region)) {
                 require(GenomicRanges)
-                overlap <- GenomicRanges::findOverlaps(gr, snps)
+                overlap <- GenomicRanges::findOverlaps(region, snps)
                 # which of the ranges did the position hit
                 hit <- rep(FALSE, length(snps))
                 hit[GenomicRanges::subjectHits(overlap)] <- TRUE
@@ -478,6 +500,7 @@ honeybadger <- setRefClass(
             if(!is.null(r.sub)) {
                 r.maf <- r.sub
                 geneFactor <- geneFactor[rownames(r.sub)]
+                snps <- snps[rownames(r.sub),]
             }
             if(!is.null(n.sc.sub)) {
                 n.sc <- n.sc.sub
@@ -503,6 +526,7 @@ honeybadger <- setRefClass(
                 l.maf <- l.maf[vi]
                 n.bulk <- n.bulk[vi]
                 geneFactor <- geneFactor[vi]
+                snps <- snps[vi,]
             }
             if(filter) {
                 ## filter out snps without coverage
@@ -512,6 +536,7 @@ honeybadger <- setRefClass(
                 l.maf <- l.maf[vi]
                 n.bulk <- n.bulk[vi]
                 geneFactor <- geneFactor[vi]
+                snps <- snps[vi,]
             }
             cat('Assessing posterior probability of CNV in region ... \n')
             cat(paste0('with ', length(n.bulk), ' snps ... '))
@@ -679,7 +704,7 @@ honeybadger <- setRefClass(
                 })
                 vote[bound.genes.old] <- 0 ## do not want to rediscover old bounds
 
-                print(paste0('max vote:', max(vote)))
+                cat(paste0('max vote:', max(vote)))
                 if(max(vote)==0) {
                     return() ## exit iteration, no more bound SNPs found
                 }
@@ -719,14 +744,14 @@ honeybadger <- setRefClass(
                     prob <- calcGexpCnvProb(gexp.norm.sub=gexp.norm[bound.genes.new, ])
 
                     cat("AMPLIFICATION PROBABILITY: ")
-                    print(prob[[1]])
+                    cat(prob[[1]])
 
                     cat("DELETION PROBABILITY: ")
-                    print(prob[[2]])
+                    cat(prob[[2]])
 
                     return(list('ap'=prob[[1]], 'dp'=prob[[2]], 'bs'=bound.genes.new))
                 })
-                print(prob.info)
+                ##cat(prob.info)
                 return(prob.info)
             }
             amp.prob.info <- getTbv(lapply(boundgenes.pred, function(x) x[['amp']]))
@@ -788,19 +813,20 @@ honeybadger <- setRefClass(
             if(length(g1)>=3) {
                 tryCatch({
                     calcGexpCnvBoundaries(gexp.norm.sub=gexp.norm[, g1])
-                }, error = function(e) { print("error detected"); print(e) })
+                }, error = function(e) { cat(paste0("ERROR: ", e)) })
             }
             print('Recursion for Group2')
             if(length(g2)>=3) {
                 tryCatch({
                     calcGexpCnvBoundaries(gexp.norm.sub=gexp.norm[, g2])
-                }, error = function(e) { print("error detected"); print(e) })
+                }, error = function(e) { cat(paste0("ERROR: ", e)) })
             }
 
 
         },
 
         calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, init=FALSE) {
+
             if(!is.null(r.sub)) {
                 r.maf <- r.sub
                 snps <- snps[rownames(r.maf)]
@@ -829,6 +855,7 @@ honeybadger <- setRefClass(
                 return()
             }
 
+            cat('ignore previously identified CNVs ... ')
             ## remove old bound snps
             vi <- !(rownames(r.maf) %in% bound.snps.old)
             r.maf <- r.maf[vi,]
@@ -845,6 +872,8 @@ honeybadger <- setRefClass(
             d[is.nan(d)] <- 0
             d[is.infinite(d)] <- 0
             hc <- hclust(d, method="ward.D2")
+
+            cat('iterative HMM ... ')
 
             ## iterative HMM
             heights <- 1:min(min.traverse, ncol(r.maf))
@@ -883,7 +912,7 @@ honeybadger <- setRefClass(
             })
             vote[bound.snps.old] <- 0 ## do not want to rediscover old bounds
 
-            print(paste0('max vote:', max(vote)))
+            cat(paste0('max vote:', max(vote)))
             if(max(vote)==0) {
                 return() ## exit iteration, no more bound SNPs found
             }
@@ -921,16 +950,16 @@ honeybadger <- setRefClass(
             del.prob.info <- lapply(names(tbv), function(ti) {
                 bound.snps.new <- names(bound.snps.cont)[bound.snps.cont == ti]
 
-                print('SNPS AFFECTED BY DELETION')
-                print(bound.snps.new)
+                cat('SNPS AFFECTED BY DELETION/LOH: ')
+                cat(bound.snps.new)
 
                 ##clafProfile(r[bound.snps.new, hc$labels[hc$order]], n.sc[bound.snps.new, hc$labels[hc$order]], l[bound.snps.new], n.bulk[bound.snps.new])
 
                 ## now that we have boundaries, run on all cells
                 del.prob <- calcAlleleCnvProb(r.maf[bound.snps.new, ], n.sc[bound.snps.new, ], l.maf[bound.snps.new], n.bulk[bound.snps.new], region=NULL, n.iter=100, filter=FALSE, pe=pd, quiet=FALSE)
 
-                print("DELETION PROBABILITY")
-                print(del.prob)
+                cat("DELETION/LOH PROBABILITY:")
+                cat(del.prob)
 
                 return(list('dp'=del.prob, 'bs'=bound.snps.new))
             })
@@ -963,17 +992,17 @@ honeybadger <- setRefClass(
             ##heatmap(cbind(del.prob[results.order], del.prob[results.order]), Rowv=NA, Colv=NA, scale="none", col=colorRampPalette(c("black", "red"))(100))
             ##clafProfile(r[, results.order], n.sc[, results.order], l, n.bulk)
 
-            print("DELETION SNPS:")
-            print(bound.snps.new)
-            print(del.prob.fin)
+            cat("DELETION SNPS:")
+            cat(bound.snps.new)
+            cat(del.prob.fin)
 
             ## need better threshold
             g1 <- colnames(del.prob.fin)[del.prob.fin > 0.75]
-            print("GROUP1:")
-            print(g1)
+            cat("GROUP1:")
+            cat(g1)
             g2 <- colnames(del.prob.fin)[del.prob.fin <= 0.25]
-            print("GROUP2:")
-            print(g2)
+            cat("GROUP2:")
+            cat(g2)
             ##clafProfile(r[, g1], n.sc[, g1], l, n.bulk)
             ##clafProfile(r[, g2], n.sc[, g2], l, n.bulk)
 
@@ -990,7 +1019,7 @@ honeybadger <- setRefClass(
             ##bound.snps <- names(sort(sbs))
 
             ## Recursion
-            print('Recursion for Group1')
+            cat('Recursion for Group1')
             if(length(g1)>=3) {
                 tryCatch({
                     calcAlleleCnvBoundaries(r.sub=r.maf[, g1],
@@ -998,9 +1027,9 @@ honeybadger <- setRefClass(
                                  l.sub=rowSums(r.maf[, g1]>0),
                                  n.bulk.sub=rowSums(n.sc[, g1]>0)
                                  )
-                }, error = function(e) { print("error detected"); print(e) })
+                }, error = function(e) { cat(paste0("ERROR: ", e)) })
             }
-            print('Recursion for Group2')
+            cat('Recursion for Group2')
             if(length(g2)>=3) {
                 tryCatch({
                     calcAlleleCnvBoundaries(r.sub=r.maf[, g2],
@@ -1008,35 +1037,78 @@ honeybadger <- setRefClass(
                                  l.sub=rowSums(r.maf[, g2]>0),
                                  n.bulk.sub=rowSums(n.sc[, g2]>0)
                                  )
-                }, error = function(e) { print("error detected"); print(e) })
+                }, error = function(e) { cat(paste0("ERROR: ", e)) })
             }
         },
 
         
-        retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, trimGenes=3, trimSnps=3) {
-            if(retestBoundGenes & length(bound.genes.final)==0) {
-                cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
-            } else {
-                retest <- lapply(seq_along(bound.genes.final), function(i) {
-                    bgs <- bound.genes.final[[i]][[1]]
-                    bgs <- bgs[trimGenes:(length(bgs)-trimGenes)]
-                    x <- calcGexpCnvProb(gexp.norm[bgs,])
-                    list(x[[1]], x[[2]])
-                })
-                return(retest)
+        retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE) {
+            if(retestBoundGenes) {
+                cat('Retesting bound genes ... ')
+                if(length(bound.genes.final)==0) {
+                    cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
+                } else {
+                    ## retest <- lapply(seq_along(bound.genes.final), function(i) {
+                    ##     bgs <- bound.genes.final[[i]][[1]]
+                    ##     bgs <- bgs[trimGenes:(length(bgs)-trimGenes)]
+                    ##     x <- calcGexpCnvProb(gexp.norm[bgs,])
+                    ##     list(x[[1]], x[[2]])
+                    ## })
+                    rgs <- range(genes[unlist(bound.genes.final),])
+                    retest <- lapply(seq_len(length(rgs)), function(i) {
+                        x <- calcGexpCnvProb(region=rgs[i])
+                        list(x[[1]], x[[2]])
+                    })
+                    results[['gene-based']] <<- retest
+                    
+                    return(retest)
+                }
             }
+            
+            if(retestBoundSnps) {
+                cat('Retesting bound snps ... ')
+                if(length(bound.snps.final)==0) {
+                    cat('ERROR NO SNPS AFFECTED BY CNVS IDENTIFIED! Run calcAlleleCnvBoundaries()? ')
+                } else {
+                    ## retest <- lapply(seq_along(bound.snps.final), function(i) {
+                    ##     bgs <- bound.snps.final[[i]][[1]]
+                    ##     bgs <- bgs[trimSnps:(length(bgs)-trimSnps)]
+                    ##     x <- calcAlleleCnvProb(r.sub=r[bgs,], n.sc.sub=n.sc[bgs,], l.sub=l[bgs], n.bulk.sub=n.bulk[bgs])
+                    ##     x
+                    ## })
+                    rgs <- range(snps[unlist(bound.snps.final),])
+                    retest <- lapply(seq_len(length(rgs)), function(i) {
+                        x <- calcAlleleCnvProb(region=rgs[i])
+                        x
+                    })
+                    results[['allele-based']] <<- retest
+                    return(retest)                
+                }
+            }
+        },
 
-            if(retestBoundSnps & length(bound.snps.final)==0) {
-                cat('ERROR NO SNPS AFFECTED BY CNVS IDENTIFIED! Run calcAlleleCnvBoundaries()? ')
-            } else {
-                retest <- lapply(seq_along(bound.snps.final), function(i) {
-                    bgs <- bound.snps.final[[i]][[1]]
-                    bgs <- bgs[trimSnps:(length(bgs)-trimSnps)]
-                    x <- calcAlleleCnvProb(r.sub=r[bgs,], n.sc.sub=n.sc[bgs,], l.sub=l[bgs], n.bulk.sub=n.bulk[bgs])
-                    x
-                })
-                return(retest)                
+
+        summarizeResults=function(geneBased=TRUE, alleleBased=FALSE) {
+            if(geneBased & !alleleBased) {
+                rgs <- range(genes[unlist(bound.genes.final),])
+                retest <- results[['gene-based']]
+                amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
+                del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
+                colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
+                colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
+                df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)            
             }
+            if(alleleBased & !geneBased) {
+                rgs <- range(snps[unlist(bound.snps.final),])
+                retest <- results[['allele-based']]
+                del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
+                colnames(del.loh.allele.prob) <- paste0('del.loh.allele ', colnames(del.loh.allele.prob))
+                df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
+            }
+            if(alleleBased & geneBased) {
+                ## TODO
+            }
+            return(df)
         }
 
     ) ## end methods
