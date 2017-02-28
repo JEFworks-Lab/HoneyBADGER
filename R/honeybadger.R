@@ -1378,14 +1378,10 @@ honeybadger$methods(
             'I.j' = I.j,
             'pseudo' = pe,
             'mono' = mono,
-            ## expression
             'gexp' = gexp,
             'JJ' = nrow(gexp),
             'sigma0' = sigma0,
             'mag0' = m
-            #'mu0'  = mu0,
-            #'sigma0' = sigma0
-            #'t' = mu0/2
         )
         
         modelFile <- system.file("bug", "combinedModel.bug", package = "HoneyBADGER")
