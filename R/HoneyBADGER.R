@@ -23,9 +23,9 @@
 #'
 #' @export
 #' 
-honeybadger <- setRefClass(
+HoneyBADGER <- setRefClass(
 
-    "honeybadger",
+    "HoneyBADGER",
 
     fields=c(
         'r', ## r single cell alternative allele count matrix
@@ -87,7 +87,7 @@ honeybadger <- setRefClass(
 
 #' Set gene expression matrices, normalizes, and maps genes to genomic coordinates
 #'
-#' @name honeybadger_setGexpMats
+#' @name HoneyBADGER_setGexpMats
 #' @param gexp.sc.init Single cell gene expression matrix
 #' @param gexp.ref.init Reference gene expression matrix such as from GTEX or a match normal
 #' @param mart.obj Biomart object used for mapping genes to genomic positions
@@ -98,13 +98,13 @@ honeybadger <- setRefClass(
 #' @param scale Boolean of whether or not to scale by library size (default: TRUE)
 #'
 #' @examples \dontrun{ 
-#' hb <- honeybadger$new()
+#' hb <- HoneyBADGER$new()
 #' require(biomaRt) ## for gene coordinates
 #' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' }
 NULL
-honeybadger$methods(
+HoneyBADGER$methods(
     setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
         cat("Initializing expression matrices ... \n")
 
@@ -156,7 +156,7 @@ honeybadger$methods(
 
 #' Plot gene expression profile
 #'
-#' @name honeybadger_plotGexpProfile
+#' @name HoneyBADGER_plotGexpProfile
 #' @param gexp.norm.sub Optional normalized gene expression matrix. If not provided, internal normalized gene expression matrix is used.
 #' @param chrs Chromosomes to be plotted (default: paste0('chr', c(1:22, 'X')))
 #' @param window.size Window size for sliding window mean. Must be odd number. (default: 101)
@@ -167,14 +167,14 @@ honeybadger$methods(
 #' @param defailt Boolean for whether to return detailed smoothed profiles (default: FALSE)
 #' 
 #' @examples \dontrun{ 
-#' hb <- honeybadger$new()
+#' hb <- HoneyBADGER$new()
 #' require(biomaRt) ## for gene coordinates
 #' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' hb$plotGexpProfile() 
 #' }
 NULL
-honeybadger$methods(
+HoneyBADGER$methods(
     plotGexpProfile=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22, 'X')), window.size=101, zlim=c(-2,2), setOrder=FALSE, setWidths=FALSE, order=NULL, details=FALSE) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
@@ -246,13 +246,13 @@ honeybadger$methods(
 
 #' Model expected gene expression variance as a function of number of genes
 #'
-#' @name honeybadger_setMvFit
+#' @name HoneyBADGER_setMvFit
 #' @param num.genes Number of random genes sampled (default: seq(5, 100, by=5))
 #' @param rep Number of repeats/resampling (default: 50)
 #' @param plot Whether to plot (default: FALSE)
 #' 
 NULL
-honeybadger$methods(
+HoneyBADGER$methods(
     setMvFit=function(num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE) {
         cat('Modeling expected variance ... ')
         mean.var.comp <- lapply(num.genes, function(ng) {
@@ -310,13 +310,13 @@ honeybadger$methods(
 
 #' Calculate posterior probability of CNVs using normalized expression data
 #'
-#' @name honeybadger_calcGexpCnvProb
+#' @name HoneyBADGER_calcGexpCnvProb
 #' @param gexp.norm.sub Optional normalized gene expression matrix. If not provided, internal normalized gene expression matrix is used.
 #' @param m Expected mean deviation due to copy number change (default: 0.15)
 #' @param region GenomicRanges region of interest such as expected CNV boundaries
 #' @param quiet Boolean for whether to suppress progress display
 #'
-honeybadger$methods(
+HoneyBADGER$methods(
     calcGexpCnvProb=function(gexp.norm.sub=NULL, m=0.15, region=NULL, quiet=TRUE) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
@@ -412,9 +412,9 @@ honeybadger$methods(
     
 #' Set allele count matrices, creates in-silico pooled single cells as bulk reference if none provided
 #'
-#' @name honeybadger_setAlleleMats
+#' @name HoneyBADGER_setAlleleMats
 #'
-honeybadger$methods(
+HoneyBADGER$methods(
     setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=TRUE, het.deviance.threshold=0.05, min.cell=3, n.cores=1) {
         cat("Initializing allele matrices ... \n")
 
@@ -538,9 +538,9 @@ honeybadger$methods(
     
 #' Maps snps to genes
 #'
-#' @name honeybadger_setGeneFactors
+#' @name HoneyBADGER_setGeneFactors
 #'
-honeybadger$methods(
+HoneyBADGER$methods(
     setGeneFactors=function(txdb, fill=TRUE, gene=TRUE) {
         cat("Mapping snps to genes ... \n")
         require(ChIPseeker)
@@ -559,9 +559,9 @@ honeybadger$methods(
     
 #' Plot allele profile
 #'
-#' @name honeybadger_plotAlleleProfile
+#' @name HoneyBADGER_plotAlleleProfile
 #'
-honeybadger$methods(
+HoneyBADGER$methods(
     plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, order=NULL, filter=FALSE, return.plot=FALSE) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
@@ -647,7 +647,7 @@ honeybadger$methods(
 
 #' Calculate posterior probability of CNVs using allele data
 #'
-#' @name honeybadger_calcAlleleCnvProb
+#' @name HoneyBADGER_calcAlleleCnvProb
 #' @param r.sc.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
 #' @param n.sc.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
 #' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
@@ -659,7 +659,7 @@ honeybadger$methods(
 #' @param n.iter Number of iterations in MCMC. (default: 1000)
 #' @param quiet Boolean of whether to suppress progress bar. (default: TRUE)
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     calcAlleleCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
@@ -789,9 +789,9 @@ honeybadger$methods(
 
 #' Recursive HMM to identify CNV boundaries using normalized gene expression data
 #'
-#' @name honeybadger_calcGexpCnvBoundaries
+#' @name HoneyBADGER_calcGexpCnvBoundaries
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, min.traverse=3, min.num.genes=5, init=FALSE) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
@@ -1002,9 +1002,9 @@ honeybadger$methods(
 
 #' Recursive HMM to identify CNV boundaries using allele data
 #'
-#' @name honeybadger_calcAlleleCnvBoundaries
+#' @name HoneyBADGER_calcAlleleCnvBoundaries
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, init=FALSE) {
 
         if(!is.null(r.sub)) {
@@ -1225,9 +1225,9 @@ honeybadger$methods(
 
 #' Calculate posterior probability of CNVs using normalized expression data and allele data 
 #'
-#' @name honeybadger_calcCombCnvProb
+#' @name HoneyBADGER_calcCombCnvProb
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     calcCombCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, gexp.norm.sub=NULL, m=0.15, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
@@ -1417,9 +1417,9 @@ honeybadger$methods(
 
 #' Calculate posterior probability of CNVs for regions identified by the recursive HMM approach
 #'
-#' @name honeybadger_retestIdentifiedCnvs
+#' @name HoneyBADGER_retestIdentifiedCnvs
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE) {
         if(retestBoundGenes) {
             cat('Retesting bound genes ... ')
@@ -1492,9 +1492,9 @@ honeybadger$methods(
 
 #' Summarize results
 #'
-#' @name honeybadger_summarizeResults
+#' @name HoneyBADGER_summarizeResults
 #' 
-honeybadger$methods(
+HoneyBADGER$methods(
     summarizeResults=function(geneBased=TRUE, alleleBased=FALSE) {
         if(geneBased & !alleleBased) {
             rgs <- range(genes[unlist(bound.genes.final),])
