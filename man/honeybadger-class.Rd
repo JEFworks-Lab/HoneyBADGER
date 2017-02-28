@@ -8,4 +8,48 @@
 \description{
 A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
 }
+\section{Fields}{
+
+\describe{
+\item{\code{r}}{single cell alternative allele count matrix}
+
+\item{\code{n.sc}}{single cell snp coverage matrix}
+
+\item{\code{l}}{bulk alternative allele count vector}
+
+\item{\code{n.bulk}}{bulk snp coverage vector}
+
+\item{\code{r.maf}}{single cell minor allele count matrix}
+
+\item{\code{l.maf}}{bulk minor allele count vector}
+
+\item{\code{gexp.sc}}{gene expression matrix}
+
+\item{\code{gexp.ref}}{reference gene expression matrix}
+
+\item{\code{gexp.norm}}{normalized gene expression matrix}
+
+\item{\code{mvFit}}{estimated expression magnitude variance as a function of number of genes}
+
+\item{\code{snps}}{GenomicRanges representation of snps in r}
+
+\item{\code{genes}}{GenomicRanges representation of gene positions for genes in gexp.sc}
+
+\item{\code{geneFactor}}{mapping of snps to genes}
+
+\item{\code{pred.snps.r}}{matrix of cells and snps affected by cnv}
+
+\item{\code{pred.genes.r}}{matrix of cells and snps affected by cnv}
+
+\item{\code{bound.snps.old}}{temporary list of snps within cnv region used during recursion}
+
+\item{\code{bound.snps.final}}{list of snps within cnv region}
+
+\item{\code{bound.genes.old}}{temporary list of snps within cnv region used during recursion}
+
+\item{\code{bound.genes.final}}{list of snps within cnv region}
+
+\item{\code{results}}{retested posterior probabilities}
+}}
+
 
