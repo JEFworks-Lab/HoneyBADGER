@@ -1,3 +1,6 @@
 *~
 .RData
 test/
+inst/doc
+vignettes/cache
+vignettes/.build.timestamp

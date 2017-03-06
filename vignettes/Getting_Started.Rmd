@@ -1,0 +1,55 @@
+---
+title: "Getting started with HoneyBADGER"
+author: "Jean Fan"
+date: "`r Sys.Date()`"
+md_document:
+  variant: markdown_github
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+```{r, include = FALSE}
+library(knitr)
+opts_chunk$set(
+    warning = FALSE,
+    message = FALSE,
+    fig.path = 'figure/',
+    cache.path = 'cache/',
+    cache = TRUE
+)
+```
+
+
+```{r}
+
+library(HoneyBADGER)
+
+data(gexp)
+data(ref)
+
+require(biomaRt) ## for gene coordinates
+mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+hb <- HoneyBADGER$new()
+hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
+hb$plotGexpProfile()
+
+hb$setMvFit()
+hb$calcGexpCnvBoundaries(init=TRUE)
+
+bgf <- get('bound.genes.final', slot(hb, '.xData'))
+genes <- get('genes', slot(hb, '.xData'))
+range(genes)
+
+hb$retestIdentifiedCnvs()
+
+retest <- get('results', slot(hb, '.xData'))[['gene-based']]
+results <- do.call(rbind, lapply(retest, function(x) rbind(x[[1]], x[[2]])))
+hc <- hclust(dist(t(results)), method='ward.D2')
+hb$plotGexpProfile(order=hc$labels[hc$order])
+
+hb$summarizeResults(geneBased=TRUE)
+
+```
