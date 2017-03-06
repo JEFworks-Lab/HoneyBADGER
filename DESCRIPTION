@@ -15,6 +15,7 @@ Imports:
 	ggplot2,
 	reshape2,
 	rjags,
+	coda,
 	parallel,
 	ChIPseeker,
 	HiddenMarkov

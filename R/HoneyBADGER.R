@@ -21,7 +21,8 @@
 #' @field bound.genes.final list of snps within cnv region
 #' @field results retested posterior probabilities
 #'
-#' @export
+#' @export HoneyBADGER
+#' @exportClass HoneyBADGER
 #' 
 HoneyBADGER <- setRefClass(
 
@@ -108,24 +109,28 @@ HoneyBADGER$methods(
     setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
         cat("Initializing expression matrices ... \n")
 
+        if(class(gexp.ref.init)!='Matrix') {
+            gexp.ref.init <- as.matrix(gexp.ref.init)
+        }
+        
         vi <- intersect(rownames(gexp.sc.init), rownames(gexp.ref.init))
         if(length(vi) < 10) {
             cat('WARNING! GENE NAMES IN EXPRESSION MATRICES DO NOT SEEM TO MATCH! \n')
         }
         gexp.sc <<- gexp.sc.init[vi,]
-        gexp.ref <<- gexp.ref.init[vi,]
+        gexp.ref <<- gexp.ref.init[vi,,drop=FALSE]
 
         if(filter) {
             vi <- (rowMeans(gexp.sc) > minMeanBoth & rowMeans(gexp.ref) > minMeanBoth) | rowMeans(gexp.sc) > minMeanTest | rowMeans(gexp.ref) > minMeanRef
             cat(paste0(sum(vi), " genes passed filtering ... \n"))
             gexp.sc <<- gexp.sc[vi,]
-            gexp.ref <<- gexp.ref[vi,]
+            gexp.ref <<- gexp.ref[vi,,drop=FALSE]
         }
         if(scale) {
             cat("scaling coverage ... \n")
             ## library size
-            mat <- scale(mat)
-            mat.ref <- scale(mat.ref)
+            gexp.sc <<- scale(gexp.sc)
+            gexp.ref <<- scale(gexp.ref)
         }
 
         cat(paste0("normalizing gene expression for ", nrow(gexp.sc), " genes and ", ncol(gexp.sc), " cells ... \n"))
@@ -519,7 +524,7 @@ HoneyBADGER$methods(
         }
 
         snps.df <- rownames(r)
-        snps.df <- data.frame(do.call(rbind,strsplit(snps.df,":|-")), stringsAsFactors=F)
+        snps.df <- data.frame(do.call(rbind,strsplit(snps.df,":|-| ")), stringsAsFactors=F)
         if(ncol(snps.df)==2) {
             snps.df <- cbind(snps.df, snps.df[,2])
         }
@@ -678,7 +683,7 @@ HoneyBADGER$methods(
         if(!is.null(region)) {
             require(GenomicRanges)
             overlap <- GenomicRanges::findOverlaps(region, snps)
-                                        # which of the ranges did the position hit
+            ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
             hit[GenomicRanges::subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
@@ -948,6 +953,9 @@ HoneyBADGER$methods(
             prob.bin[prob <= 0.75 & prob >= 0.25] <- NA
         }
 
+        if(is.null(prob.bin)) {
+            return()
+        }
         if(ncol(prob.bin)>1) {
             dps <- rowSums(prob.bin, na.rm=TRUE)
             dpsi <- which(dps == max(dps))[1] ## pick one of the most clonal
@@ -1011,6 +1019,7 @@ HoneyBADGER$methods(
             r.maf <- r.sub
             snps <- snps[rownames(r.maf)]
             geneFactor <- geneFactor[rownames(r.maf)]
+            snps <- rownames(r.maf)
         }
         if(!is.null(n.sc.sub)) {
             n.sc <- n.sc.sub
