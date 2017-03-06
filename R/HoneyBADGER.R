@@ -180,7 +180,7 @@ HoneyBADGER$methods(
 #' }
 NULL
 HoneyBADGER$methods(
-    plotGexpProfile=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22, 'X')), window.size=101, zlim=c(-2,2), setOrder=FALSE, setWidths=FALSE, order=NULL, details=FALSE) {
+    plotGexpProfile=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), window.size=101, zlim=c(-2,2), setOrder=FALSE, setWidths=FALSE, order=NULL, details=FALSE) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
             genes <- genes[rownames(gexp.norm.sub)]
@@ -206,8 +206,8 @@ HoneyBADGER$methods(
         }
 
         ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
-                                        #chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
-                                        #l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
+        ##chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
+        ##l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
         if(setWidths) {
             widths <- sapply(tl, nrow); widths <- widths/max(widths)*100
         } else {
@@ -567,7 +567,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_plotAlleleProfile
 #'
 HoneyBADGER$methods(
-    plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, order=NULL, filter=FALSE, return.plot=FALSE) {
+    plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, order=NULL, filter=FALSE, return.plot=FALSE) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
         }
@@ -613,38 +613,63 @@ HoneyBADGER$methods(
 
         require(ggplot2)
         require(reshape2)
-
-        m <- melt(t(r.tot))
-        colnames(m) <- c('cell', 'snp', 'alt.frac')
-        rownames(m) <- paste(m$cell, m$snp)
-        m$alt.frac[is.nan(m$alt.frac)] <- NA
-        n <- melt(t(n.tot))
-        colnames(n) <- c('cell', 'snp', 'coverage')
-        rownames(n) <- paste(n$cell, n$snp)
-        n$coverage[n$coverage>30] <- 30  # max for visualization purposes
-        ##n$coverage <- log10(n$coverage+1)
-        n$coverage <- n$coverage^(1/3) # cube root for visualization purposes only
-        dat <- cbind(m, coverage=n$coverage)
-
-        p <- ggplot(dat, aes(snp, cell)) +
-            ## geom_tile(alpha=0) +
-            geom_point(aes(colour = alt.frac, size = coverage)) +
-            scale_size_continuous(range = c(0,3)) +
-            ## scale_colour_gradientn(colours = rainbow(10)) +
-            scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
-            theme(
-                ## axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=rel(0.5),lineheight=1),
-                ## axis.text.y=element_blank(),
-                axis.title.y=element_blank(),
-                axis.ticks.y=element_blank(),
-                ##axis.text.y=element_text(size=rel(0.5))
-                legend.position="bottom"
-                ##panel.margin=unit(0 , "lines")
-            )
-        if(return.plot) {
-            return(p)
+        
+        if(setWidths) {
+            widths <- sapply(chrs, function(chr) {
+                sum(grepl(paste0('^',chr,':'), rownames(r)))
+            }); widths <- widths/max(widths)*100
         } else {
-            print(p)
+            widths <- rep(1, length(chrs))
+        }                    
+        
+        plist <- lapply(chrs, function(chr) {
+            vi <- grepl(paste0('^',chr,':'), rownames(r))
+            m <- melt(t(r.tot[vi,]))
+            colnames(m) <- c('cell', 'snp', 'alt.frac')
+            rownames(m) <- paste(m$cell, m$snp)
+            m$alt.frac[is.nan(m$alt.frac)] <- NA
+            n <- melt(t(n.tot[vi,]))
+            colnames(n) <- c('cell', 'snp', 'coverage')
+            rownames(n) <- paste(n$cell, n$snp)
+            n$coverage[n$coverage>30] <- 30  # max for visualization purposes
+            ##n$coverage <- log10(n$coverage+1)
+            n$coverage <- n$coverage^(1/3) # cube root for visualization purposes only
+            dat <- cbind(m, coverage=n$coverage)
+            
+            p <- ggplot(dat, aes(snp, cell)) +
+                ## geom_tile(alpha=0) +
+                geom_point(aes(colour = alt.frac, size = coverage)) +
+                scale_size_continuous(range = c(0,3)) +
+                ## scale_colour_gradientn(colours = rainbow(10)) +
+                scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
+                theme(
+                    axis.text.x=element_blank(),
+                    axis.title.x=element_blank(),
+                    axis.ticks.x=element_blank(),
+                    axis.text.y=element_blank(),
+                    axis.title.y=element_blank(),
+                    axis.ticks.y=element_blank(),
+                    legend.position="none",
+                    plot.margin=unit(c(0,0,0,0), "cm"),
+                    panel.border = element_rect(fill = NA, linetype = "solid", colour = "black")
+                ) + labs(title = chr)
+                ## theme(
+                ##     ## axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=rel(0.5),lineheight=1),
+                ##     ## axis.text.y=element_blank(),
+                ##     axis.title.y=element_blank(),
+                ##     axis.ticks.y=element_blank(),
+                ##     ##axis.text.y=element_text(size=rel(0.5))
+                ##     legend.position="bottom"
+                ##     ##panel.margin=unit(0 , "lines")
+                ## )
+            return(p)
+        })
+        
+        if(return.plot) {
+            return(plist)
+        } else {
+            do.call("grid.arrange", c(plist, ncol=length(plist)))
+            ##print(p)
         }
     }
 )
@@ -797,7 +822,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_calcGexpCnvBoundaries
 #' 
 HoneyBADGER$methods(
-    calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, min.traverse=3, min.num.genes=5, init=FALSE) {
+    calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), min.traverse=3, min.num.genes=5, init=FALSE) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
             genes <- genes[rownames(gexp.norm)]
@@ -820,7 +845,6 @@ HoneyBADGER$methods(
 
         ## order
         gos <- as.data.frame(genes)[rownames(gexp.norm),]
-        chrs=paste0('chr', c(1:22, 'X'))
         tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
             na.omit(gexp.norm[rownames(gos)[ii[order((gos[ii,]$start+gos[ii,]$end)/2,decreasing=F)]],])
         })
