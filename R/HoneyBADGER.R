@@ -651,7 +651,8 @@ HoneyBADGER$methods(
                     axis.ticks.y=element_blank(),
                     legend.position="none",
                     plot.margin=unit(c(0,0,0,0), "cm"),
-                    panel.border = element_rect(fill = NA, linetype = "solid", colour = "black")
+                    panel.border = element_rect(fill = NA, linetype = "solid", colour = "black"),
+                    plot.title = element_text(hjust = 0.5)
                 ) + labs(title = chr)
                 ## theme(
                 ##     ## axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=rel(0.5),lineheight=1),
