@@ -583,7 +583,7 @@ HoneyBADGER$methods(
         if(!is.null(region)) {
             require(GenomicRanges)
             overlap <- GenomicRanges::findOverlaps(region, snps)
-                                        # which of the ranges did the position hit
+            ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
             hit[GenomicRanges::subjectHits(overlap)] <- TRUE
             if(sum(hit) < 10) {
@@ -594,6 +594,8 @@ HoneyBADGER$methods(
             n.sc <- n.sc[vi,]
             l.maf <- l.maf[vi]
             n.bulk <- n.bulk[vi]
+
+            chrs <- region@seqnames@values 
         }
         if(!is.null(order)) {
             r.maf <- r.maf[,order]
@@ -623,7 +625,7 @@ HoneyBADGER$methods(
         }                    
         
         plist <- lapply(chrs, function(chr) {
-            vi <- grepl(paste0('^',chr,':'), rownames(r))
+            vi <- grepl(paste0('^',chr,':'), rownames(r.tot))
             m <- melt(t(r.tot[vi,]))
             colnames(m) <- c('cell', 'snp', 'alt.frac')
             rownames(m) <- paste(m$cell, m$snp)
@@ -669,6 +671,7 @@ HoneyBADGER$methods(
         if(return.plot) {
             return(plist)
         } else {
+            require(gridExtra)
             do.call("grid.arrange", c(plist, ncol=length(plist)))
             ##print(p)
         }

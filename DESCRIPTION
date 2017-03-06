@@ -14,6 +14,7 @@ Imports:
 	caTools,
 	ggplot2,
 	reshape2,
+        gridExtra,
 	rjags,
 	coda,
 	parallel,
