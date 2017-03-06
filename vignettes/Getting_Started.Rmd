@@ -18,7 +18,10 @@ opts_chunk$set(
     message = FALSE,
     fig.path = 'figure/',
     cache.path = 'cache/',
-    cache = TRUE
+    cache = TRUE,
+    out.width='800px',
+    out.height='400px',
+    dpi=100
 )
 ```
 
@@ -27,29 +30,105 @@ opts_chunk$set(
 
 library(HoneyBADGER)
 
+```
+
+Load gene expression data for cells from patient MGH31 along with an expression reference.
+
+```{r}
 data(gexp)
 data(ref)
 
 require(biomaRt) ## for gene coordinates
 mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+```
+
+Make new HoneyBADGER object and initialzie the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling.
+
+```{r}
 hb <- HoneyBADGER$new()
 hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 hb$plotGexpProfile()
+```
 
+Now we can model the gene expression variance and use a HMM to identify regions affected by CNVs.
+
+```{r}
 hb$setMvFit()
 hb$calcGexpCnvBoundaries(init=TRUE)
 
+## double check what CNVs were identified
 bgf <- get('bound.genes.final', slot(hb, '.xData'))
 genes <- get('genes', slot(hb, '.xData'))
-range(genes)
+range(genes[unlist(bgf)])
+```
 
+Retest all identified CNVs on all cells, cluster cells on the final posterior probability, and plot.
+
+```{r}
 hb$retestIdentifiedCnvs()
 
 retest <- get('results', slot(hb, '.xData'))[['gene-based']]
 results <- do.call(rbind, lapply(retest, function(x) rbind(x[[1]], x[[2]])))
-hc <- hclust(dist(t(results)), method='ward.D2')
-hb$plotGexpProfile(order=hc$labels[hc$order])
+hc1 <- hclust(dist(t(results)), method='ward.D2')
+hb$plotGexpProfile(order=hc1$labels[hc1$order])
+head(hb$summarizeResults(geneBased=TRUE))
 
-hb$summarizeResults(geneBased=TRUE)
+```
 
+We can also analyze using allele information. Load the allele data and add them to our HoneyBADGER object.
+
+```{r}
+data(r)
+data(cov.sc)
+
+hb$setAlleleMats(r.init=r, n.sc.init=cov.sc, n.cores=1, het.deviance.threshold=0.1)
+
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+hb$setGeneFactors(txdb)
+
+hb$plotAlleleProfile()
+```
+
+Now run our allele HMM to identify putative regions affected by deletions or LOH.
+
+```{r}
+hb$calcAlleleCnvBoundaries(init=TRUE)
+
+## double check what CNVs were identified
+bsf <- get('bound.snps.final', slot(hb, '.xData'))
+snps <- get('snps', slot(hb, '.xData'))
+range(snps[unlist(bsf)])
+```
+
+We can again retest.
+
+```{r}
+retest <- hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE)
+
+results <- do.call(rbind, lapply(retest, function(x) x[[1]]))
+hc2 <- hclust(dist(t(results)), method='ward.D2')
+hb$plotAlleleProfile(order=hc2$labels[hc2$order])
+
+head(hb$summarizeResults(geneBased=FALSE, alleleBased=TRUE))
+
+```
+
+We can also combine both expression and allele information
+
+```{r}
+hb$retestIdentifiedCnvs(retestBoundGenes=TRUE, retestBoundSnps=TRUE)
+results <- get('results', slot(hb, '.xData'))
+head(results)
+#hc3 <- hclust(dist(t(results)), method='ward.D2')
+
+hb$plotGexpProfile(order=hc1$labels[hc1$order])
+hb$plotGexpProfile(order=hc2$labels[hc2$order])
+#hb$plotGexpProfile(order=hc3$labels[hc3$order])
+
+hb$plotAlleleProfile(order=hc1$labels[hc1$order])
+hb$plotAlleleProfile(order=hc2$labels[hc2$order])
+#hb$plotAlleleProfile(order=hc3$labels[h3c$order])
+
+head(hb$summarizeResults(geneBased=TRUE, alleleBased=TRUE))
 ```
