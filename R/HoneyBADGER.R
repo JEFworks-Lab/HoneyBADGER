@@ -21,8 +21,7 @@
 #' @field bound.genes.final list of snps within cnv region
 #' @field results retested posterior probabilities
 #'
-#' @export HoneyBADGER
-#' @exportClass HoneyBADGER
+#' @export 
 #' 
 HoneyBADGER <- setRefClass(
 
@@ -141,7 +140,7 @@ HoneyBADGER$methods(
         ##gos$pos <- (gos$start_position + gos$end_position)/2
         rownames(gos) <- make.unique(gos$hgnc_symbol)
         gos <- gos[rownames(gexp.norm),]
-
+        
         require(GenomicRanges)
         if(!grepl('chr', gos$chromosome_name)) {
             gos$chromosome_name <- paste0('chr', gos$chromosome_name)
@@ -149,10 +148,11 @@ HoneyBADGER$methods(
         gos <- na.omit(gos)
         gs <- with(gos, GRanges(chromosome_name, IRanges(as.numeric(start_position), as.numeric(end_position)), strand=NULL))
         names(gs) <- rownames(gos)
-        genes <<- gs
+        gvi <- intersect(rownames(gexp.norm), names(gs))
+        genes <<- gs[gvi]
 
         ## remove genes with no position information
-        gexp.norm <<- gexp.norm[names(genes),]
+        gexp.norm <<- gexp.norm[gvi,]
 
         cat("Done setting initial expression matrices! \n")
     }
@@ -227,7 +227,8 @@ HoneyBADGER$methods(
 
         tlsub <- tl
         require(RColorBrewer)
-        pcol <- rev(brewer.pal(11, 'RdBu'))
+        #pcol <- rev(brewer.pal(11, 'RdBu'))
+        pcol <- colorRampPalette(rev(brewer.pal(11,"RdBu")))(256)
         ## plot chromosomes
         tlsmooth <- lapply(names(tlsub),function(nam) {
             d <- tlsub[[nam]]
@@ -826,7 +827,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_calcGexpCnvBoundaries
 #' 
 HoneyBADGER$methods(
-    calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), min.traverse=3, min.num.genes=5, init=FALSE) {
+    calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), min.traverse=3, min.num.genes=5, t=1e-6, pd=-1, pa=1, init=FALSE, ...) {
         if(!is.null(gexp.norm.sub)) {
             gexp.norm <- gexp.norm.sub
             genes <- genes[rownames(gexp.norm)]
@@ -880,10 +881,10 @@ HoneyBADGER$methods(
                     ## change point
                     delta <- c(0, 1, 0)
                     require(HiddenMarkov)
-                    t <- 1e-6
-                    pd <- -1
+                    t <- t
+                    pd <- pd
                     pn <- 0
-                    pa <- 1
+                    pa <- pa
                     sd <- sd(mat.smooth)
                     z <- HiddenMarkov::dthmm(mat.smooth, matrix(c(1-t, t, t, t, 1-t, t, t, t, 1-t), byrow=TRUE, nrow=3), delta, "norm", list(mean=c(pd, pn, pa), sd=c(sd,sd,sd)))
                     results <- HiddenMarkov::Viterbi(z)
@@ -947,7 +948,7 @@ HoneyBADGER$methods(
                 cat(bound.genes.new)
 
                 ## now that we have boundaries, run on all cells
-                prob <- calcGexpCnvProb(gexp.norm.sub=gexp.norm[bound.genes.new, ])
+                prob <- calcGexpCnvProb(gexp.norm.sub=gexp.norm[bound.genes.new, ], ...)
 
                 cat("AMPLIFICATION PROBABILITY: ")
                 cat(prob[[1]])
@@ -1041,7 +1042,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_calcAlleleCnvBoundaries
 #' 
 HoneyBADGER$methods(
-    calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, init=FALSE) {
+    calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-5, pd=0.1, pn=0.45, min.num.snps=5, trim=0.1, init=FALSE) {
 
         if(!is.null(r.sub)) {
             r.maf <- r.sub
@@ -1115,6 +1116,7 @@ HoneyBADGER$methods(
 
                     ## Get boundaries from states
                     boundsnps <- rownames(r.maf)[results == 1]
+                    return(boundsnps)
                 }
             })
         })
@@ -1166,6 +1168,9 @@ HoneyBADGER$methods(
         ## test each of these highly confident deletions
         del.prob.info <- lapply(names(tbv), function(ti) {
             bound.snps.new <- names(bound.snps.cont)[bound.snps.cont == ti]
+
+            ## trim
+            bound.snps.new <- bound.snps.new[1:round(length(bound.snps.new)-length(bound.snps.new)*trim)]
 
             cat('SNPS AFFECTED BY DELETION/LOH: ')
             cat(bound.snps.new)
@@ -1457,7 +1462,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_retestIdentifiedCnvs
 #' 
 HoneyBADGER$methods(
-    retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE) {
+    retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE, ...) {
         if(retestBoundGenes) {
             cat('Retesting bound genes ... ')
             if(length(bound.genes.final)==0) {
@@ -1471,7 +1476,7 @@ HoneyBADGER$methods(
                 ## })
                 rgs <- range(genes[unlist(bound.genes.final),])
                 retest <- lapply(seq_len(length(rgs)), function(i) {
-                    x <- calcGexpCnvProb(region=rgs[i])
+                    x <- calcGexpCnvProb(region=rgs[i], ...)
                     list(x[[1]], x[[2]])
                 })
                 results[['gene-based']] <<- retest
@@ -1491,7 +1496,7 @@ HoneyBADGER$methods(
                 ## })
                 rgs <- range(snps[unlist(bound.snps.final),])
                 retest <- lapply(seq_len(length(rgs)), function(i) {
-                    x <- calcAlleleCnvProb(region=rgs[i])
+                    x <- calcAlleleCnvProb(region=rgs[i], ...)
                     x
                 })
                 results[['allele-based']] <<- retest
@@ -1518,7 +1523,7 @@ HoneyBADGER$methods(
             }
             
             retest <- lapply(seq_len(length(rgs)), function(i) {
-                x <- calcCombCnvProb(region=rgs[i])
+                x <- calcCombCnvProb(region=rgs[i], ...)
                 list(x[[1]], x[[2]])
             })
             results[['combine-based']] <<- retest

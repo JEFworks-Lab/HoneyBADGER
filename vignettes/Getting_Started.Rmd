@@ -106,7 +106,7 @@ We can again retest.
 ```{r}
 retest <- hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE)
 
-results <- do.call(rbind, lapply(retest, function(x) x[[1]]))
+results <- do.call(rbind, lapply(retest, function(x) x))
 hc2 <- hclust(dist(t(results)), method='ward.D2')
 hb$plotAlleleProfile(order=hc2$labels[hc2$order])
 
