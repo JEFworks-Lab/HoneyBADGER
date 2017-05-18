@@ -18,8 +18,8 @@
 	<div class="wrapper">
 	    <header>
 		<div align="center">
-		    <a href="{{site.url}}">
-			<img src="{{ '/assets/img/logo.png' }}" width=80% style="padding: 10px">
+		    <a href="{{site.url}}{{site.baseurl}}">
+			<img src="{{site.baseurl}}{{ '/assets/img/logo.png' }}" width=80% style="padding: 10px">
 			<h1>{{ site.title | default: site.github.repository_name }}</h1>
 		    </a>	      
 		    <p>{{ site.description | default: site.github.project_tagline }}</p>
