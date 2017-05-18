@@ -12,11 +12,11 @@ COMING SOON!
 ## Sample analysis and images
 
 ### iterative HMM approach for CNV detection
-![]({{ site.baseurl }}/assets/img/approach.jpg)
+![]({{ site.baseurl }}/assets/img/approach.png)
 
 ### Bayesian model to infer CNVs in single cells using allele and expression data
-![]({{ site.baseurl }}/assets/img/allele.jpg)  
-![]({{ site.baseurl }}/assets/img/expression.jpg)
+![]({{ site.baseurl }}/assets/img/allele.png)  
+![]({{ site.baseurl }}/assets/img/expression.png)
 
 ## Installation
 
