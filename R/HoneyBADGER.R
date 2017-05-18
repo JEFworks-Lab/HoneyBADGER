@@ -585,7 +585,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_plotAlleleProfile
 #'
 HoneyBADGER$methods(
-    plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, cellOrder=NULL, filter=FALSE, returnPlot=FALSE) {
+    plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, cellOrder=NULL, filter=FALSE, returnPlot=FALSE, max.ps=3) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
         }
@@ -654,15 +654,19 @@ HoneyBADGER$methods(
             n$coverage[n$coverage>30] <- 30  # max for visualization purposes
             ##n$coverage <- log10(n$coverage+1)
             n$coverage <- n$coverage^(1/3) # cube root for visualization purposes only
+            n$coverage[n$coverage==0] <- NA # if no coverage, just don't show
             dat <- cbind(m, coverage=n$coverage)
             
             p <- ggplot(dat, aes(snp, cell)) +
                 ## geom_tile(alpha=0) +
                 geom_point(aes(colour = alt.frac, size = coverage)) +
-                scale_size_continuous(range = c(0,3)) +
+                scale_size_continuous(range = c(0, max.ps)) +
                 ## scale_colour_gradientn(colours = rainbow(10)) +
                 scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
                 theme(
+                    panel.grid.major = element_blank(), 
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_blank(),
                     axis.text.x=element_blank(),
                     axis.title.x=element_blank(),
                     axis.ticks.x=element_blank(),
@@ -1594,7 +1598,7 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_visualizeResults
 #' 
 HoneyBADGER$methods(
-  visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL) {
+  visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL, vc=NULL, power=1, ...) {
     if(geneBased & !alleleBased) {
       rgs <- range(genes[unlist(bound.genes.final),])
       names <- apply(GenomicRanges::as.data.frame(rgs), 1, paste0, collapse=":")
@@ -1605,7 +1609,7 @@ HoneyBADGER$methods(
       colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
       rownames(amp.gexp.prob) <- paste0('amp', names)
       rownames(del.gexp.prob) <- paste0('del', names)
-      df <- cbind(amp.gexp.prob, del.gexp.prob)
+      df <- rbind(amp.gexp.prob, del.gexp.prob)
     }
     if(alleleBased & !geneBased) {
       rgs <- range(snps[unlist(bound.snps.final),])
@@ -1629,13 +1633,16 @@ HoneyBADGER$methods(
       colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
       rownames(amp.gexp.prob) <- paste0('amp', names)
       rownames(del.gexp.prob) <- paste0('del', names)
-      df <- cbind(amp.gexp.prob, del.gexp.prob)    
+      df <- rbind(amp.gexp.prob, del.gexp.prob)    
     }
     
     ## visualize as heatmap 
     if(is.null(hc)) {
       hc <- hclust(dist(t(df)), method='ward.D')
     } 
-    heatmap(t(df), Colv=NA, Rowv=as.dendrogram(hc), scale="none", col=colorRampPalette(c('beige', 'grey', 'darkgrey', 'black'))(100))
+    if(is.null(vc)) {
+      vc <- hclust(dist(df), method='ward.D')
+    } 
+    heatmap(t(df)^(power), Colv=as.dendrogram(vc), Rowv=as.dendrogram(hc), scale="none", col=colorRampPalette(c('beige', 'grey', 'black'))(100), ...)
   }
 )
