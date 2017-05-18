@@ -1,4 +1,5 @@
 ---
+layout: default
 title: "Getting started with HoneyBADGER"
 author: "Jean Fan"
 date: '2017-05-18'
