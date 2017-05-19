@@ -9,6 +9,8 @@ layout: default
 The overall approach to the differential expression analysis is detailed in the following publication:
 COMING SOON!
 
+---
+
 ## Sample analysis and images
 
 ### iterative HMM approach for CNV detection
@@ -17,6 +19,8 @@ COMING SOON!
 ### Bayesian model to infer CNVs in single cells using allele and expression data
 ![]({{ site.baseurl }}/assets/img/allele.png)  
 ![]({{ site.baseurl }}/assets/img/expression.png)
+
+---
 
 ## Installation
 
@@ -27,6 +31,15 @@ require(devtools)
 devtools::install_github('JEFworks/HoneyBADGER')
 ```
 
-## Tutorials
-- [Getting Started](Getting_Started.md)
+---
 
+## Tutorials
+- [Preparing data](Preparing_Data.md)
+- [Getting Started](Getting_Started.md)
+- Integration with `scde` and `liger`
+
+---
+
+## Help
+
+For questions, suggests, and other comments, please submit through <a href="{{ site.github.repository_url }}/issues">Github Issues</a>.

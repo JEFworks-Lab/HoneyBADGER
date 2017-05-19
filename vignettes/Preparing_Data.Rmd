@@ -30,15 +30,14 @@ Starting with aligned `.bam` files, there are a number of ways to prepare your d
 
 For the allele-based model, you will need a set of heterozygous SNP positions. This can be ideally obtained from previous WES data from the same sample or estimated from the [ExAC database](http://exac.broadinstitute.org/).
 
-```r
-library(HoneyBADGER)
+```{r}
 ## Download ExAC vcf or use your own vcf
 vcfFile <- "data-raw/ExAC.r0.3.sites.vep.vcf.gz"
-## For testing purposes, restrict to small set of SNPs on region on chromosome 1
+## For testing purposes, restrict to set of SNPs on region on chromosome 3
 require(GenomicRanges)
-testRanges <- GRanges('chr1', IRanges(start = 1, width=1000))
+testRanges <- GRanges('1', IRanges(start=1e5, width=1e6))
 require(VariantAnnotation)
-param = ScanVcfParam(which=testRanges)
+param <- ScanVcfParam(which=testRanges)
 vcf <- readVcf(vcfFile, "hg19", param=param)
 ## limit to common snps by MAF
 info <- info(vcf)
@@ -46,19 +45,21 @@ maf <- info[, 'AF'] # AF is Integer allele frequency for each Alt allele
 maft <- 0.1
 vi <- sapply(maf, function(x) any(x > maft))
 print(table(vi))
-snps <- rowRanges(vcf)
+snps <- rowData(vcf)
 snps <- snps[vi,]
 ## get rid of non single nucleotide changes
 vi <- width(snps@elementMetadata$REF) == 1
 snps <- snps[vi,]
 ## look at final SNPs
-print(head(snps))
+print(snps)
 ```
 
 Now we can get the number of reads corresponding to each SNP site for each cell using their `.bam` files. 
 
-```r
-files <- list.files(path = "data-raw")
+```{r}
+library(HoneyBADGER)
+path <- "data-raw/"
+files <- list.files(path = path)
 bamFiles <- files[grepl('.bam$', files)]
 bamFiles <- paste0(path, bamFiles)
 indexFiles <- files[grepl('.bai$', files)]
@@ -68,6 +69,12 @@ print(names(results))
 ```
 
 Now we have a matrix of SNP coverage as well as reference and allele count for use in our `HoneyBADGER` allele model. 
+
+```{r}
+print(head(results$refCount))
+print(head(results$altCount))
+print(head(results$cov))
+```
 
 ## Gene expression data
 
