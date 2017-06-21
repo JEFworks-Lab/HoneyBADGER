@@ -24,6 +24,11 @@ r_check_args: --no-build-vignettes --no-manual --timings
 r_github_packages:
   - JEFworks/HoneyBADGER
 
+# install jags
+before_install:
+  - sudo apt-get install jags
+  - sudo apt-get install r-cran-rjags
+
 # we need to install BiocInstaller for testing Bioconductor packages
 bioc_required: true
 
