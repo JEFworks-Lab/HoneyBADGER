@@ -1,0 +1,37 @@
+# Use R
+language: r
+sudo: false
+cache: packages
+warnings_are_errors: false
+
+env:
+  global:
+    - BIOC_USE_DEVEL="FALSE"  ## Use the current release version
+    - R_BUILD_ARGS="--no-build-vignettes --no-manual"
+    - R_CHECK_ARGS="--no-build-vignettes --no-manual --timings"  ## do not build vignettes or manual
+    - _R_CHECK_TIMINGS_="0"  ## get the timing information for the examples for all of your functions
+
+r:
+ - oldrel
+ - release
+ - devel
+
+# do not build vignettes...takes too long and times out on travis
+r_build_args: --no-build-vignettes --no-manual
+r_check_args: --no-build-vignettes --no-manual --timings
+
+# catch package installation issues sooner rather than later
+r_github_packages:
+  - JEFworks/HoneyBADGER
+
+# we need to install BiocInstaller for testing Bioconductor packages
+bioc_required: true
+
+# only report coverage for the release version
+after_success:
+  - test $TRAVIS_R_VERSION_STRING = 'release' && Rscript -e 'covr::codecov()'
+  
+notifications:
+  email:
+    on_success: change
+    on_failure: change
