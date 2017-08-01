@@ -1,6 +1,6 @@
----
-layout: default
----
+[![Build Status](https://travis-ci.org/JEFworks/HoneyBADGER.svg?branch=master)](https://travis-ci.org/JEFworks/HoneyBADGER)
+
+[![HoneyBADGER](http://jef.works/HoneyBADGER/assets/img/logo.png)](http://jef.works/HoneyBADGER)
 
 # Overview of HoneyBADGER
 
@@ -13,11 +13,11 @@ The overall approach is detailed in the following publication: COMING SOON!
 ## Sample analysis and images
 
 ### Iterative HMM approach for CNV detection
-![]({{ site.baseurl }}/assets/img/approach.png)
+![](http://jef.works/HoneyBADGER/assets/img/approach.png)
 
 ### Bayesian model to infer CNVs in single cells using allele and expression data
-![]({{ site.baseurl }}/assets/img/allele.png)  
-![]({{ site.baseurl }}/assets/img/expression.png)
+![](http://jef.works/HoneyBADGER/assets/img/allele.png)  
+![](http://jef.works/HoneyBADGER/assets/img/expression.png)
 
 ---
 
