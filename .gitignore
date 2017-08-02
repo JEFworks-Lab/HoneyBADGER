@@ -4,3 +4,12 @@ test/
 inst/doc
 vignettes/cache
 vignettes/.build.timestamp
+.Rproj.user
+_site/
+Gem*
+data-raw/
+.Rbuildignore
+.Rhistory
+HoneyBADGER.Rproj
+hb_gexp.RData
+hb_snp.RData

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/JEFworks/HoneyBADGER.svg?branch=master)](https://travis-ci.org/JEFworks/HoneyBADGER)
+[![Build Status](http://travis-ci.org/JEFworks/HoneyBADGER.svg?branch=master)](https://travis-ci.org/JEFworks/HoneyBADGER)
 
 [![HoneyBADGER](http://jef.works/HoneyBADGER/assets/img/logo.png)](http://jef.works/HoneyBADGER)
 
@@ -33,12 +33,12 @@ devtools::install_github('JEFworks/HoneyBADGER')
 ---
 
 ## Tutorials
-- [Preparing data](Preparing_Data.md)
-- [Getting Started](Getting_Started.md)
+- [Preparing data](docs/Preparing_Data.md)
+- [Getting Started](docs/Getting_Started.md)
 - Integration with `scde` and `liger`
 
 ---
 
 ## Help
 
-For questions, suggests, and other comments, please submit through <a href="{{ site.github.repository_url }}/issues">Github Issues</a>.
+For questions, suggests, and other comments, please submit through <a href="http://github.com/JEFworks/HoneyBADGER/issues">Github Issues</a>.
