@@ -909,7 +909,7 @@ HoneyBADGER$methods(
                     pn <- 0
                     pa <- pa
                     sd <- sd(mat.smooth)
-                    z <- HiddenMarkov::dthmm(mat.smooth, matrix(c(1-2t, t, t, t, 1-2t, t, t, t, 1-2t), byrow=TRUE, nrow=3), delta, "norm", list(mean=c(pd, pn, pa), sd=c(sd,sd,sd)))
+                    z <- HiddenMarkov::dthmm(mat.smooth, matrix(c(1-2*t, t, t, t, 1-2*t, t, t, t, 1-2*t), byrow=TRUE, nrow=3), delta, "norm", list(mean=c(pd, pn, pa), sd=c(sd,sd,sd)))
                     results <- HiddenMarkov::Viterbi(z)
 
                     ampgenes <- names(mat.smooth)[which(results==3)]
