@@ -108,7 +108,7 @@ HoneyBADGER <- setRefClass(
 #' }
 NULL
 HoneyBADGER$methods(
-    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE) {
+    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE, id="hgnc_symbol") {
         cat("Initializing expression matrices ... \n")
 
         if(class(gexp.ref.init)!='Matrix') {
@@ -139,11 +139,13 @@ HoneyBADGER$methods(
         refmean <- rowMeans(gexp.ref)
         gexp.norm <<- gexp.sc - refmean
 
-        gos <- getBM(values=rownames(gexp.norm),attributes=c("hgnc_symbol", "chromosome_name","start_position","end_position"),filters=c("hgnc_symbol"),mart=mart.obj)
+        gos <- getBM(values=rownames(gexp.norm),attributes=c(id, "chromosome_name","start_position","end_position"),filters=c(id),mart=mart.obj)
         ##gos$pos <- (gos$start_position + gos$end_position)/2
-        rownames(gos) <- make.unique(gos$hgnc_symbol)
+        rownames(gos) <- make.unique(gos[[id]])
         gos <- gos[rownames(gexp.norm),]
-        
+        if(nrow(gos)==0) {
+            cat('WARNING! WRONG BIOMART GENE IDENTIFIER. Use ensembl_gene_id instead of hgnc_symbol? \n')
+        }        
         require(GenomicRanges)
         if(length(grep('chr', gos$chromosome_name))==0) {
             gos$chromosome_name <- paste0('chr', gos$chromosome_name)
