@@ -143,10 +143,11 @@ HoneyBADGER$methods(
         ##gos$pos <- (gos$start_position + gos$end_position)/2
         rownames(gos) <- make.unique(gos[[id]])
         gos <- gos[rownames(gexp.norm),]
+        
         if(nrow(gos)==0) {
             cat('WARNING! WRONG BIOMART GENE IDENTIFIER. Use ensembl_gene_id instead of hgnc_symbol? \n')
         }        
-        require(GenomicRanges)
+
         if(length(grep('chr', gos$chromosome_name))==0) {
             gos$chromosome_name <- paste0('chr', gos$chromosome_name)
         }
@@ -191,11 +192,10 @@ HoneyBADGER$methods(
             genes <- genes[rownames(gexp.norm.sub)]
         }
         if(!is.null(region)) {
-          require(GenomicRanges)
-          overlap <- GenomicRanges::findOverlaps(region, genes)
+          overlap <- findOverlaps(region, genes)
           ## which of the ranges did the position hit
           hit <- rep(FALSE, length(genes))
-          hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+          hit[subjectHits(overlap)] <- TRUE
           if(sum(hit) < 10) {
             cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
           }
@@ -204,7 +204,7 @@ HoneyBADGER$methods(
           genes <- genes[rownames(gexp.norm)]
         }
       
-        gos <- GenomicRanges::as.data.frame(genes)
+        gos <- as.data.frame(genes)
         rownames(gos) <- names(genes)
         mat <- gexp.norm
 
@@ -245,13 +245,10 @@ HoneyBADGER$methods(
         }
 
         tlsub <- tl
-        require(RColorBrewer)
-        #pcol <- rev(brewer.pal(11, 'RdBu'))
-        pcol <- colorRampPalette(rev(brewer.pal(11,"RdBu")))(256)
+        pcol <- colorRampPalette(rev(RColorBrewer::brewer.pal(11,"RdBu")))(256)
         ## plot chromosomes
         tlsmooth <- lapply(names(tlsub),function(nam) {
             d <- tlsub[[nam]]
-            require(caTools)
             d <- apply(d,2,caTools::runmean,k=window.size, align="center")
             d[d< zlim[1]] <- zlim[1]; d[d>zlim[2]] <- zlim[2];
             if(!is.null(cellOrder)) {
@@ -354,12 +351,11 @@ HoneyBADGER$methods(
         fits <- mvFit
 
         if(!is.null(region)) {
-            require(GenomicRanges)
-            overlap <- GenomicRanges::findOverlaps(region, gos)
-                                        # which of the ranges did the position hit
+            overlap <- findOverlaps(region, gos)
+            ## which of the ranges did the position hit
             hit <- rep(FALSE, length(gos))
             names(hit) <- names(gos)
-            hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+            hit[subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 return();
@@ -485,7 +481,6 @@ HoneyBADGER$methods(
             E <- l/n.bulk
             n <- nrow(r)
             m <- ncol(r)
-            require(parallel)
             mat <- do.call(rbind, parallel::mclapply(1:n, function(i) {
                 do.call(cbind, lapply(1:m, function(j) {
                     ri <- r[i,j]
@@ -549,7 +544,6 @@ HoneyBADGER$methods(
             snps.df <- cbind(snps.df, snps.df[,2])
         }
         colnames(snps.df) <- c('chr','start','end');
-        require(GenomicRanges)
         if(!grepl('chr', snps.df[1,1])) {
             snps.df[,1] <- paste0('chr', snps.df[,1])
         }
@@ -568,7 +562,6 @@ HoneyBADGER$methods(
 HoneyBADGER$methods(
     setGeneFactors=function(txdb, fill=TRUE, gene=TRUE) {
         cat("Mapping snps to genes ... \n")
-        require(ChIPseeker)
         gf <- ChIPseeker::annotatePeak(peak=snps, TxDb=txdb)
         gf.df <- data.frame(gf)$geneId
         names(gf.df) <- names(snps)
@@ -601,11 +594,10 @@ HoneyBADGER$methods(
             n.bulk <- n.bulk.sub
         }
         if(!is.null(region)) {
-            require(GenomicRanges)
-            overlap <- GenomicRanges::findOverlaps(region, snps)
+            overlap <- findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+            hit[subjectHits(overlap)] <- TRUE
             if(sum(hit) < 10) {
                 cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
             }
@@ -703,6 +695,120 @@ HoneyBADGER$methods(
 )
 
 
+#' Plot smoothed allele profile
+#'
+#' @name HoneyBADGER_plotSmoothedAlleleProfile
+#'
+HoneyBADGER$methods(
+  plotSmoothedAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, setOrder=FALSE, cellOrder=NULL, filter=FALSE, returnPlot=FALSE, window.size=51) {
+    if(!is.null(r.sub)) {
+      r.maf <- r.sub
+    }
+    if(!is.null(n.sc.sub)) {
+      n.sc <- n.sc.sub
+    }
+    if(!is.null(l.sub)) {
+      l.maf <- l.sub
+    }
+    if(!is.null(n.bulk.sub)) {
+      n.bulk <- n.bulk.sub
+    }
+    if(!is.null(region)) {
+      overlap <- findOverlaps(region, snps)
+      ## which of the ranges did the position hit
+      hit <- rep(FALSE, length(snps))
+      hit[subjectHits(overlap)] <- TRUE
+      if(sum(hit) < 10) {
+        cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+      }
+      vi <- hit
+      r.maf <- r.maf[vi,]
+      n.sc <- n.sc[vi,]
+      l.maf <- l.maf[vi]
+      n.bulk <- n.bulk[vi]
+      
+      chrs <- region@seqnames@values 
+    }
+    if(!is.null(cellOrder)) {
+      r.maf <- r.maf[,cellOrder]
+      n.sc <- n.sc[,cellOrder]
+    }
+    if(filter) {
+      ## filter out snps without coverage
+      vi <- rowSums(n.sc) > 0
+      r.maf <- r.maf[vi,]
+      n.sc <- n.sc[vi,]
+      l.maf <- l.maf[vi]
+      n.bulk <- n.bulk[vi]
+    }
+    
+    r.tot <- cbind(r.maf/n.sc, 'Bulk'=l.maf/n.bulk)
+    n.tot <- cbind(n.sc, 'Bulk'=n.bulk)
+    
+    mat <- r.maf/n.sc
+    
+    ## organize into chromosomes
+    gos <- as.data.frame(snps)
+    tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
+      mat[rownames(gos)[ii[order(gos[ii,]$start,decreasing=F)]],,drop=FALSE]
+    })
+    ## only care about these chromosomes
+    tl <- tl[chrs]
+    
+    if(!is.null(r.sub) | !is.null(region)) {
+      ## remove empty; need more than 1 gene
+      vi <- unlist(lapply(tl, function(x) {
+        if(is.null(x)) { return(FALSE) }
+        else { return(nrow(x)>1) }
+      }))
+      tl <- tl[vi]
+    }
+    
+    ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
+    ##chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
+    ##l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
+    if(setWidths) {
+      widths <- sapply(tl, nrow); widths <- widths/max(widths)*100
+    } else {
+      widths <- rep(1, length(tl))
+    }
+    l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=TRUE), widths=widths)
+    
+    if(setOrder) {
+      avgd <- do.call(rbind, lapply(names(tl),function(nam) {
+        d <- tl[[nam]]
+        d <- colMeans(d, na.rm=TRUE)
+        d
+      }))
+      hc <- hclust(dist(t(avgd)))
+      cellOrder <- hc$order
+    }
+    
+    tlsub <- tl
+    
+    pcol <- colorRampPalette(c('turquoise', 'yellow', 'red'))(256)
+
+    ## plot chromosomes
+    tlsmooth <- lapply(names(tlsub),function(nam) {
+      d <- tlsub[[nam]]
+      d <- apply(d,2,caTools::runmean,k=window.size, align="center")
+      #d[d< zlim[1]] <- zlim[1]; d[d>zlim[2]] <- zlim[2];
+      if(!is.null(cellOrder)) {
+        d <- d[, cellOrder]
+      }
+      par(mar = c(0.5,0.2,3.0,0.2), mgp = c(2,0.65,0), cex = 0.8)
+      image(seq_len(nrow(d)), seq_len(ncol(d)), d, col=pcol, zlim=c(0,1), xlab="", ylab="", axes=FALSE, main=nam)
+      box()
+    })
+    
+    if(returnPlot) {
+      return(tlsmooth)
+    }
+    
+  }
+)
+
+
 #' Calculate posterior probability of CNVs using allele data
 #'
 #' @name HoneyBADGER_calcAlleleCnvProb
@@ -734,11 +840,10 @@ HoneyBADGER$methods(
             n.bulk <- n.bulk.sub
         }
         if(!is.null(region)) {
-            require(GenomicRanges)
-            overlap <- GenomicRanges::findOverlaps(region, snps)
+            overlap <- findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+            hit[subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 return();
@@ -872,7 +977,7 @@ HoneyBADGER$methods(
         gexp.norm <- gexp.norm[vi,]
 
         ## order
-        gos <- GenomicRanges::as.data.frame(genes)
+        gos <- as.data.frame(genes)
         rownames(gos) <- names(genes)
         gos <- gos[rownames(gexp.norm),]
         tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
@@ -905,7 +1010,6 @@ HoneyBADGER$methods(
 
                     ## change point
                     delta <- c(0, 1, 0)
-                    require(HiddenMarkov)
                     t <- t
                     pd <- pd
                     pn <- 0
@@ -1135,7 +1239,6 @@ HoneyBADGER$methods(
 
                     ## change point
                     delta <- c(0, 1)
-                    require(HiddenMarkov)
                     z <- HiddenMarkov::dthmm(mafl, matrix(c(1-t, t, t, 1-t), byrow=TRUE, nrow=2), delta, "binom", list(prob=c(pd, pn)), list(size=sizel), discrete=TRUE)
                     results <- HiddenMarkov::Viterbi(z)
 
@@ -1321,12 +1424,11 @@ HoneyBADGER$methods(
 
         if(!is.null(region)) {
             ## limit gexp
-            require(GenomicRanges)
-            overlap <- GenomicRanges::findOverlaps(region, gos)
-                                        # which of the ranges did the position hit
+            overlap <- findOverlaps(region, gos)
+            ## which of the ranges did the position hit
             hit <- rep(FALSE, length(gos))
             names(hit) <- names(gos)
-            hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+            hit[subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 return();
@@ -1344,11 +1446,10 @@ HoneyBADGER$methods(
             gexp <- gexp[vi,]
 
             ## limit snp mats
-            require(GenomicRanges)
-            overlap <- GenomicRanges::findOverlaps(region, snps)
-                                        # which of the ranges did the position hit
+            overlap <- findOverlaps(region, snps)
+            ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[GenomicRanges::subjectHits(overlap)] <- TRUE
+            hit[subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 return();
@@ -1454,7 +1555,6 @@ HoneyBADGER$methods(
         modelFile <- system.file("bug", "combinedModel.bug", package = "HoneyBADGER")
         
         cat('Initializing model...')
-        require(rjags)
         model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
         update(model, 300, progress.bar=ifelse(quiet,"none","text"))
         
@@ -1570,14 +1670,14 @@ HoneyBADGER$methods(
             del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
             colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
             colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
-            df <- cbind(GenomicRanges::as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)
+            df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)
         }
         if(alleleBased & !geneBased) {
             rgs <- range(snps[unlist(bound.snps.final),])
             retest <- results[['allele-based']]
             del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
             colnames(del.loh.allele.prob) <- paste0('del.loh.allele ', colnames(del.loh.allele.prob))
-            df <- cbind(GenomicRanges::as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
+            df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
         }
         if(alleleBased & geneBased) {
             gr <- range(genes[unlist(bound.genes.final),])
@@ -1589,7 +1689,7 @@ HoneyBADGER$methods(
             del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
             colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
             colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
-            df <- cbind(GenomicRanges::as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
+            df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
         }
         return(df)
     }
@@ -1603,7 +1703,7 @@ HoneyBADGER$methods(
   visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL, vc=NULL, power=1, ...) {
     if(geneBased & !alleleBased) {
       rgs <- range(genes[unlist(bound.genes.final),])
-      names <- apply(GenomicRanges::as.data.frame(rgs), 1, paste0, collapse=":")
+      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
       retest <- results[['gene-based']]
       amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
       del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
@@ -1615,7 +1715,7 @@ HoneyBADGER$methods(
     }
     if(alleleBased & !geneBased) {
       rgs <- range(snps[unlist(bound.snps.final),])
-      names <- apply(GenomicRanges::as.data.frame(rgs), 1, paste0, collapse=":")
+      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
       retest <- results[['allele-based']]
       del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
       colnames(del.loh.allele.prob) <- paste0('del.loh.allele ', colnames(del.loh.allele.prob))
@@ -1626,7 +1726,7 @@ HoneyBADGER$methods(
       gr <- range(genes[unlist(bound.genes.final),])
       sr <- range(snps[unlist(bound.snps.final),])
       rgs <- intersect(gr, sr)
-      names <- apply(GenomicRanges::as.data.frame(rgs), 1, paste0, collapse=":")
+      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
       
       retest <- results[['combine-based']]
       amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))

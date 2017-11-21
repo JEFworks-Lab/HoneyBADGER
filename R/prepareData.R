@@ -31,7 +31,10 @@
 #' @export
 #'
 getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
-  names <- paste(gr)
+  names <- apply(GenomicRanges::as.data.frame(gr)[,1:3], 1, function(x) {
+    x = paste0(c(paste0(c(x[1], x[2]), collapse=":"), x[3]), collapse="-")
+    gsub(" ", "", x) ##remove spaces?
+  })
   if (verbose) {
     print("Getting allele counts for...")
     print(names)
@@ -94,7 +97,10 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #' @export
 #'
 getCoverage <- function (gr, bamFile, indexFile, verbose = FALSE) {
-  names <- paste(gr)
+  names <- apply(GenomicRanges::as.data.frame(gr)[,1:3], 1, function(x) {
+    x = paste0(c(paste0(c(x[1], x[2]), collapse=":"), x[3]), collapse="-")
+    gsub(" ", "", x) ##remove spaces?
+  })
   if (verbose) {
     print("Getting coverage for...")
     print(names)
@@ -155,7 +161,7 @@ getCoverage <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #' if(verbose) {
 #'     print(table(vi))
 #' }
-#' snps <- rowRanges(vcf)
+#' snps <- rowData(vcf)
 #' snps <- snps[vi,]
 #' ## get rid of non single nucleotide changes
 #' vi <- width(snps@elementMetadata$REF) == 1
@@ -174,7 +180,7 @@ getCoverage <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #'
 #' @export
 #' 
-getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=10, verbose=FAlSE) {
+getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
   
   ## loop
   cov <- do.call(cbind, mclapply(seq_along(bamFiles), function(i) {
@@ -189,7 +195,11 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=10, verbose=FAlSE) {
     print("Snps with coverage:")
     print(table(rowSums(cov)>0))
   }
-  vi <- rowSums(cov)>0; table(vi)
+  vi <- rowSums(cov)>0
+  if(sum(vi)==0) {
+    print('ERROR: NO SNPS WITH COVERAGE. Check VCF and bams are using the same reference.')
+    return(NULL)
+  }
   cov <- cov[vi,]
   snps <- snps[vi,]
   
@@ -218,7 +228,7 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=10, verbose=FAlSE) {
     ##cov[vi]
   }
   
-  results <- list(refCount, altCount, cov)
+  results <- list(refCount=refCount, altCount=altCount, cov=cov)
   return(results)
 }
 

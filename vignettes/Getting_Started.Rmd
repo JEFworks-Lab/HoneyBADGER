@@ -46,7 +46,7 @@ Make new HoneyBADGER object and initialzie the gene expression matrices. The dat
 ```{r, fig.width=12, fig.height=4}
 hb <- new('HoneyBADGER', name='MGH31')
 hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
-hb$plotGexpProfile()
+hb$plotGexpProfile(setOrder=TRUE)
 ```
 
 Now we can model the gene expression variance and use a HMM to identify regions affected by CNVs.
@@ -58,8 +58,8 @@ hb$calcGexpCnvBoundaries(init=TRUE)
 ## double check what CNVs were identified
 bgf <- get('bound.genes.final', slot(hb, '.xData'))
 genes <- get('genes', slot(hb, '.xData'))
-regions <- range(genes[unlist(bgf)])
-print(regions)
+regions.genes <- range(genes[unlist(bgf)])
+print(regions.genes)
 ```
 
 Retest all identified CNVs on all cells, cluster cells on the final posterior probability, and plot.
@@ -114,7 +114,10 @@ hb$setGeneFactors(txdb)
 
 
 ```{r, fig.width=12, fig.height=4}
-hb$plotAlleleProfile()
+
+hb$plotSmoothedAlleleProfile(cellOrder=hc$labels[hc$order])
+hb$plotAlleleProfile(cellOrder=hc$labels[hc$order])
+
 ```
 
 Now run our allele HMM to identify putative regions affected by deletions or LOH.
@@ -125,7 +128,8 @@ hb$calcAlleleCnvBoundaries(init=TRUE)
 ## double check what CNVs were identified
 bsf <- get('bound.snps.final', slot(hb, '.xData'))
 snps <- get('snps', slot(hb, '.xData'))
-range(snps[unlist(bsf)])
+regions.snp <- range(snps[unlist(bsf)])
+print(regions.snp)
 ```
 
 We can again retest.
@@ -139,6 +143,9 @@ results <- do.call(rbind, lapply(retest, function(x) x))
 
 ```{r, fig.width=12, fig.height=4}
 hb$plotAlleleProfile(cellOrder=hc$labels[hc$order])
+
+hb$plotAlleleProfile(cellOrder=hc$labels[hc$order], region=regions.snp[1])
+hb$plotAlleleProfile(cellOrder=hc$labels[hc$order], region=regions.snp[5])
 ```
 
 ```{r}
