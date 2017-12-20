@@ -31,10 +31,8 @@
 #' @export
 #'
 getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
-  names <- apply(GenomicRanges::as.data.frame(gr)[,1:3], 1, function(x) {
-    x = paste0(c(paste0(c(x[1], x[2]), collapse=":"), x[3]), collapse="-")
-    gsub(" ", "", x) ##remove spaces?
-  })
+  df <- data.frame(seqnames(gr), ranges(gr))
+  names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
   if (verbose) {
     print("Getting allele counts for...")
     print(names)
@@ -77,7 +75,7 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #' @param cellBarcodes vector of valid cell barcodes annotated as CB in the bam 
 #' @param indexFile bai index file
 #' @param verbose Boolean of whether or not to print progress and info
-#' @param ncores Number of cores; Can parallelize across cells
+#' @param n.cores Number of cores; Can parallelize across cells
 #' @return
 #'   refCount reference allele count information for each position of interest
 #'   altCount alternative allele count information for each position of interest
@@ -92,12 +90,12 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #' vi <- cov>0
 #' snps.cov <- snps[vi,]
 #' barcodes <- c('AAACATACAAAACG-1', 'AAACATACAAAAGC-1', 'AAACATACAAACAG-1')
-#' mats.chr1 <- getCellAlleleCount(snps.cov, bamFile, indexFile, barcodes, verbose=TRUE, ncores=10)
+#' mats.chr1 <- getCellAlleleCount(snps.cov, bamFile, indexFile, barcodes, verbose=TRUE, n.cores=10)
 #' }
 #'
 #' @export
 #'
-getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = FALSE, ncores=1) {
+getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = FALSE, n.cores=1) {
   df <- data.frame(seqnames(gr), ranges(gr))
   names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
   if (verbose) {
@@ -135,7 +133,7 @@ getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = 
     #    print("Done!")
     #}
     return(list('ref'=refCount, 'alt'=altCount))
-  }, mc.cores=ncores)
+  }, mc.cores=n.cores)
   refCount <- do.call(cbind, lapply(counts, function(x) x$ref))
   altCount <- do.call(cbind, lapply(counts, function(x) x$alt))
   colnames(refCount) <- colnames(altCount) <- cellBarcodes
@@ -171,10 +169,8 @@ getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = 
 #' @export
 #'
 getCoverage <- function (gr, bamFile, indexFile, verbose = FALSE) {
-  names <- apply(GenomicRanges::as.data.frame(gr)[,1:3], 1, function(x) {
-    x = paste0(c(paste0(c(x[1], x[2]), collapse=":"), x[3]), collapse="-")
-    gsub(" ", "", x) ##remove spaces?
-  })
+  df <- data.frame(seqnames(gr), ranges(gr))
+  names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
   if (verbose) {
     print("Getting coverage for...")
     print(names)
@@ -271,7 +267,7 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
   }
   vi <- rowSums(cov)>0
   if(sum(vi)==0) {
-    print('ERROR: NO SNPS WITH COVERAGE. Check VCF and bams are using the same reference.')
+    print('ERROR: NO SNPS WITH COVERAGE. Check if snps and bams are using the same alignment reference.')
     return(NULL)
   }
   cov <- cov[vi,]
@@ -288,6 +284,104 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
   refCount <- do.call(cbind, lapply(alleleCount, function(x) x[[1]]))
   altCount <- do.call(cbind, lapply(alleleCount, function(x) x[[2]]))
   colnames(refCount) <- colnames(altCount) <- bamFiles
+  
+  ## check correspondence
+  if(verbose) {
+    print("altCount + refCount == cov:")
+    print(table(altCount + refCount == cov))
+    print("altCount + refCount < cov: sequencing errors")
+    print(table(altCount + refCount < cov))
+    ##vi <- which(altCount + refCount != cov, arr.ind=TRUE)
+    ## some sequencing errors evident
+    ##altCount[vi]
+    ##refCount[vi]
+    ##cov[vi]
+  }
+  
+  results <- list(refCount=refCount, altCount=altCount, cov=cov)
+  return(results)
+}
+
+
+#' Helper function to get coverage and allele count matrices given a set of putative heterozygous SNP positions specific for 10X data
+#'
+#' @param snps GenomicRanges object for positions of interest
+#' @param bamFiles list of bam file
+#' @param indexFiles list of bai index file
+#' @param n.cores number of cores
+#' @param verbose Boolean of whether or not to print progress and info
+#' @return
+#'   refCount reference allele count matrix for each cell and each position of interest
+#'   altCount alternative allele count matrix for each cell and each position of interest
+#'   cov total coverage count matrix for each cell and each position of interest
+#' 
+#' @examples
+#' \dontrun{
+#' # Get putative hets from ExAC
+#' vcfFile <- "../data-raw/ExAC.r0.3.sites.vep.vcf.gz"
+#' testRanges <- GRanges(chr, IRanges(start = 1, width=1000))
+#' param = ScanVcfParam(which=testRanges)
+#' vcf <- readVcf(vcfFile, "hg19", param=param)
+#' ## common snps by MAF
+#' info <- info(vcf)
+#' if(nrow(info)==0) {
+#'     if(verbose) {
+#'         print("ERROR no row in vcf")
+#'     }
+#'     return(NA)
+#' }
+#' maf <- info[, 'AF'] # AF is Integer allele frequency for each Alt allele
+#' if(verbose) {
+#'     print(paste0("Filtering to snps with maf > ", maft))
+#' }
+#' vi <- sapply(maf, function(x) any(x > maft))
+#' if(verbose) {
+#'     print(table(vi))
+#' }
+#' snps <- rowData(vcf)
+#' snps <- snps[vi,]
+#' ## get rid of non single nucleotide changes
+#' vi <- width(snps@elementMetadata$REF) == 1
+#' snps <- snps[vi,]
+#' ## also gets rid of sites with multiple alt alleles though...hard to know which is in our patient
+#' vi <- width(snps@elementMetadata$ALT@partitioning) == 1
+#' snps <- snps[vi,]
+#' ## Get bams
+#' files <- list.files(path = "../data-raw")
+#' bamFiles <- files[grepl('.bam$', files)]
+#' bamFiles <- paste0(path, bamFiles)
+#' indexFiles <- files[grepl('.bai$', files)]
+#' indexFiles <- paste0(path, indexFiles)
+#' barcodes <- read.table("filtered_gene_bc_matrices/hg19/barcodes.tsv", header=FALSE)
+#' results <- getSnpMats10X(snps, bamFiles, indexFiles, barcodes)
+#' }
+#'
+#' @export
+#' 
+getSnpMats10X <- function(snps, bamFiles, indexFiles, barcodes, n.cores=1, verbose=FALSE) {
+  
+  ## loop
+  cov <- getCoverage(snps, bamFile, indexFile, verbose)
+  
+  ## any coverage?
+  if(verbose) {
+    print("Snps with coverage:")
+    print(table(cov>0))
+  }
+  vi <- cov>0
+  if(sum(vi)==0) {
+    print('ERROR: NO SNPS WITH COVERAGE. Check if snps and bams are using the same alignment reference.')
+    return(NULL)
+  }
+  cov <- cov[vi]
+  snps.cov <- snps[vi,]
+  
+  if(verbose) {
+    print("Getting allele counts...")
+  }
+  alleleCount <- getCellAlleleCount(snps.cov, bamFile, indexFile, barcodes, verbose=TRUE, n.cores=n.cores)
+  refCount <- alleleCount[[1]]
+  altCount <- alleleCount[[2]]
   
   ## check correspondence
   if(verbose) {
