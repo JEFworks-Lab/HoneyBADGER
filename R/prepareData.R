@@ -70,6 +70,80 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 }
 
 
+#' Get alternative allele count for positions of interest for multiple cells from one bam
+#'
+#' @param gr GenomicRanges object for positions of interest
+#' @param bamFile bam file containing all cells indexed by barcode (such as 10X)
+#' @param cellBarcodes vector of valid cell barcodes annotated as CB in the bam 
+#' @param indexFile bai index file
+#' @param verbose Boolean of whether or not to print progress and info
+#' @param ncores Number of cores; Can parallelize across cells
+#' @return
+#'   refCount reference allele count information for each position of interest
+#'   altCount alternative allele count information for each position of interest
+#'
+#' @examples
+#' \dontrun{
+#' ## Get putative hets from ExAC
+#' load(system.file("ExAC", "ExAC_chr1.RData", package = "HoneyBADGER"))
+#' head(snps)
+#' cov <- getCoverage(snps, bamFile, indexFile, verbose=TRUE)
+#' ## for the sites with coverage, get all cells
+#' vi <- cov>0
+#' snps.cov <- snps[vi,]
+#' barcodes <- c('AAACATACAAAACG-1', 'AAACATACAAAAGC-1', 'AAACATACAAACAG-1')
+#' mats.chr1 <- getCellAlleleCount(snps.cov, bamFile, indexFile, barcodes, verbose=TRUE, ncores=10)
+#' }
+#'
+#' @export
+#'
+getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = FALSE, ncores=1) {
+  df <- data.frame(seqnames(gr), ranges(gr))
+  names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
+  if (verbose) {
+    print("Getting allele counts for...")
+    print(names)
+  }
+  
+  pp <- PileupParam(distinguish_strands = FALSE, distinguish_nucleotides = TRUE, max_depth = 1e+07, min_base_quality = 20, min_mapq = 10)
+  if (verbose) {
+    print("Getting pileup...")
+  }
+  
+  counts <- mclapply(cellBarcodes, function(cell) {
+    sbp <- ScanBamParam(tagFilter = list('CB'=cell), which=gr)
+    pu <- pileup(file = bamFile, index = indexFile, scanBamParam = sbp, pileupParam = pp)
+    
+    if (verbose) {
+      print(paste0("Getting allele read counts for ", cell, "..."))
+    }
+    refCount <- unlist(lapply(seq_along(names), function(i) {
+      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$REF)$value[i])
+      if(length(b)==0) { return(0) } # neither allele observed
+      else if(sum(b)==0) { return(0) } # alt allele observed only
+      else { return(pu[pu$which_label==names[i],]$count[b]) }
+    }))
+    altCount <- unlist(lapply(seq_along(names), function(i) {
+      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$ALT)$value[i])
+      if(length(b)==0) { return(0) } # neither allele observed
+      else if(sum(b)==0) { return(0) } # ref allele observed only
+      else { return(pu[pu$which_label==names[i],]$count[b]) }
+    }))
+    names(refCount) <- names(altCount) <- names
+    
+    #if (verbose) {
+    #    print("Done!")
+    #}
+    return(list('ref'=refCount, 'alt'=altCount))
+  }, mc.cores=ncores)
+  refCount <- do.call(cbind, lapply(counts, function(x) x$ref))
+  altCount <- do.call(cbind, lapply(counts, function(x) x$alt))
+  colnames(refCount) <- colnames(altCount) <- cellBarcodes
+  
+  return(list('ref'=refCount, 'alt'=altCount))
+}
+
+
 #' Get coverage count for positions of interest
 #'
 #' @param gr GenomicRanges object for positions of interest 
