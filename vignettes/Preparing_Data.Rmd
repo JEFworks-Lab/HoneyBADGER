@@ -2,7 +2,8 @@
 title: "Preparing Data"
 author: "Jean Fan"
 date: '`r Sys.Date()`'
-output: html_document
+output:
+  pdf_document: default
 md_document:
   variant: markdown_github
 vignette: |
@@ -24,16 +25,17 @@ opts_chunk$set(
 )
 ```
 
-Starting with aligned `.bam` files, there are a number of ways to prepare your data for `HoneyBADGER`. 
 
 ## Allele Data
 
 For the allele-based model, you will need a set of heterozygous SNP positions. This can be ideally obtained from previous WES data from the same sample or estimated from the [ExAC database](http://exac.broadinstitute.org/).
 
-```{r}
-## Download ExAC vcf or use your own vcf
-vcfFile <- "data-raw/ExAC.r0.3.sites.vep.vcf.gz"
-## For testing purposes, restrict to set of SNPs on region on chromosome 3
+Example using your own VCF file:
+
+```{r, eval=FALSE}
+## Use your own vcf file with heterozygous variants
+vcfFile <- "hets.vcf.gz"
+## For testing purposes, restrict to set of SNPs on region on chromosome 1
 require(GenomicRanges)
 testRanges <- GRanges('1', IRanges(start=1e5, width=1e6))
 require(VariantAnnotation)
@@ -54,28 +56,45 @@ snps <- snps[vi,]
 print(snps)
 ```
 
-Now we can get the number of reads corresponding to each SNP site for each cell using their `.bam` files. 
-
+Example using ExAC:
 ```{r}
+## available for all autosomes (Chr1 to Chr22)
+load(system.file("ExAC", "ExAC_chr1.RData", package = "HoneyBADGER"))
+print(head(snps))
+```
+
+Now we can get the number of reads corresponding to each SNP site for each cell using their `.bam` files. Here, we have placed all `.bam` and corresponding `.bai` index files in the `data-raw/` folder. There is one `.bam` and `.bai` for each cell. 
+
+```{r, eval=FALSE}
 library(HoneyBADGER)
 path <- "data-raw/"
 files <- list.files(path = path)
 bamFiles <- files[grepl('.bam$', files)]
-bamFiles <- paste0(path, bamFiles)
-indexFiles <- files[grepl('.bai$', files)]
-indexFiles <- paste0(path, indexFiles)
+bamFiles <- paste0(path, bamFiles) ## list of paths to bam files
+indexFiles <- files[grepl('.bai$', files)] 
+indexFiles <- paste0(path, indexFiles) ## list of paths to index files
 results <- getSnpMats(snps, bamFiles, indexFiles)
-print(names(results))
 ```
 
 Now we have a matrix of SNP coverage as well as reference and allele count for use in our `HoneyBADGER` allele model. 
 
-```{r}
-print(head(results$refCount))
-print(head(results$altCount))
-print(head(results$cov))
+```{r, eval=FALSE}
+ref <- results$refCount
+alt <- results$altCount
+cov <- results$cov
 ```
 
 ## Gene expression data
 
-For gene expression data, we recommend quantification by TPM or FPM transformed to log scale. The same processing pipeline and transformation is highly recommended for the normal reference. Normal references can be ideally obtained from matched normal but can also be estimated using [GTeX](https://www.gtexportal.org/home/). 
+For gene expression data, we recommend quantification by counts transformed to log CPM. The same processing pipeline and transformation is highly recommended for the normal reference. Normal references can be ideally obtained from matched normal but can also be estimated using [GTeX](https://www.gtexportal.org/home/). 
+
+## Accomodating 10X Data
+
+For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformmed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.  
+
+```{r, eval=FALSE}
+results <- getCellAlleleCount(snps, bamFile, indexFile, cellBarcodes)
+```
+
+
+
