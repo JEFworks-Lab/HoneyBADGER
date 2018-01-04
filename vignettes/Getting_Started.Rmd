@@ -2,7 +2,9 @@
 title: "Getting started with HoneyBADGER"
 author: "Jean Fan"
 date: '`r Sys.Date()`'
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 md_document:
   variant: markdown_github
 vignette: |
@@ -18,42 +20,45 @@ opts_chunk$set(
     fig.path = 'figure/',
     cache.path = 'cache/',
     cache = TRUE,
-    out.width='800px',
-    out.height='400px',
     dpi=100
 )
 ```
 
 
 ```{r}
-
 library(HoneyBADGER)
-
 ```
 
-Load gene expression data for cells from patient MGH31 along with an expression reference.
+As an example, we will load prepared data for tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396).
+
+First, we will load the gene expression matrices for tumor cells along with a normal expression reference derived from averaging normal brain samples found in [GTex](https://www.gtexportal.org/home/). We also load a corresponding biomaRt instance (for human) to obtain chromosomal coordinate information for our genes. 
 
 ```{r}
-data(gexp)
-data(ref)
+data(gexp) ## tumor cells
+data(ref) ## reference
 
 require(biomaRt) ## for gene coordinates
 mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+
+print(gexp[1:5,1:5])
+print(ref[1:5])
+print(mart.obj)
 ```
 
-Make new HoneyBADGER object and initialzie the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling.
+Make a new `HoneyBADGER` object and initialize the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling.
 
 ```{r, fig.width=12, fig.height=4}
 hb <- new('HoneyBADGER', name='MGH31')
-hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
-hb$plotGexpProfile(setOrder=TRUE)
+hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE, verbose=TRUE)
+hb$plotGexpProfile() ## initial visualization
 ```
 
-Now we can model the gene expression variance and use a HMM to identify regions affected by CNVs.
+Visually we may already visually suspect some chromosomal abnormalities on Chr 7, 10, 13, 14. We can model the gene expression variance and use a HMM to identify regions affected by CNVs.
 
 ```{r}
-hb$setMvFit()
-hb$calcGexpCnvBoundaries(init=TRUE)
+hb$setMvFit(verbose=TRUE) ## model variance
+hb$setGexpDev(verbose=TRUE) ## model necessary expression deviation to identify CNVs
+hb$calcGexpCnvBoundaries(init=TRUE, verbose=TRUE) ## HMM
 
 ## double check what CNVs were identified
 bgf <- get('bound.genes.final', slot(hb, '.xData'))
@@ -62,40 +67,50 @@ regions.genes <- range(genes[unlist(bgf)])
 print(regions.genes)
 ```
 
-Retest all identified CNVs on all cells, cluster cells on the final posterior probability, and plot.
+Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell and plot.
 
 ```{r}
 hb$retestIdentifiedCnvs()
 
 ## look at final results
-retest <- get('results', slot(hb, '.xData'))[['gene-based']]
-results.amp <- do.call(rbind, lapply(retest, function(x) x[[1]])) 
-results.del <- do.call(rbind, lapply(retest, function(x) x[[2]])) 
+results <- hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
 
-## filter to regions with at least some highly confident cells
-vi <- rowSums(results.amp > 0.8) > 10 | rowSums(results.del > 0.8) > 10
-print(regions[vi])
+rgs <- range(hb$genes[unlist(hb$bound.genes.final),])
+      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
+      retest <- hb$results[['gene-based']]
+      amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
+      del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
 
-results <- rbind(results.amp[vi,], results.del[vi,])
-hc <- hclust(dist(t(results)), method='ward.D')
+      ## filter to regions with at least some highly confident cells
+      vi1 <- rowSums(amp.gexp.prob > 0.75) > min.num.cells
+      amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
+      vi2 <- rowSums(del.gexp.prob > 0.75) > min.num.cells
+      del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
+      
+      rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
+      rownames(del.gexp.prob) <- paste0('del', names[vi2])
+
+      results <- rbind(amp.gexp.prob, del.gexp.prob)      
+hc <- hclust(dist(colSums(results)))
+order <- hc$labels[hc$order]
 ```
 
 
 ```{r, fig.width=12, fig.height=4}
 ## plot all chromosomes
-hb$plotGexpProfile(cellOrder=hc$labels[hc$order])
-## plot identified CNV region only
-hb$plotGexpProfile(cellOrder=hc$labels[hc$order], region=regions[vi])
-```
-
-```{r}
-## summarize results
-hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
+hb$plotGexpProfile(cellOrder=order)
 ```
 
 ```{r, fig.width=12, fig.height=4}
+## plot identified CNV region only
+hb$plotGexpProfile(cellOrder=order, region=regions.genes[vi1,]) ## amplifications
+hb$plotGexpProfile(cellOrder=order, region=regions.genes[vi2,]) ## deletions
+```
+
+
+```{r, fig.width=12, fig.height=8}
 ## visualize as heatmap 
-hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, hc=hc)
+hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, hc=hc, margins=c(25,15))
 ```
 
 We can also analyze using allele information. Load the allele data and add them to our HoneyBADGER object.
@@ -139,7 +154,7 @@ hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE)
 
 retest <- get('results', slot(hb, '.xData'))[['allele-based']]
 results <- do.call(rbind, lapply(retest, function(x) x))
-
+```
 
 ```{r, fig.width=12, fig.height=4}
 hb$plotAlleleProfile(cellOrder=hc$labels[hc$order])
