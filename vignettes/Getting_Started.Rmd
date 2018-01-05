@@ -19,7 +19,7 @@ opts_chunk$set(
     message = FALSE,
     fig.path = 'figure/',
     cache.path = 'cache/',
-    cache = TRUE,
+    cache = FALSE,
     dpi=100
 )
 ```
@@ -66,20 +66,20 @@ hb$setGexpDev(verbose=TRUE) ## model necessary expression deviation to identify 
 hb$calcGexpCnvBoundaries(init=TRUE, verbose=FALSE) ## HMM
 
 ## double check what CNVs were identified
-bgf <- get('bound.genes.final', slot(hb, '.xData'))
-genes <- get('genes', slot(hb, '.xData'))
+bgf <- hb$bound.genes.final
+genes <- hb$genes
 regions.genes <- range(genes[unlist(bgf)])
 print(regions.genes)
 ```
 
 Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell. We can cluster cells on these posterior probabilities and visualize them as a heatmap. 
 
-```{r, fig.width=12, fig.height=4}
+```{r, fig.width=12, fig.height=12}
 hb$retestIdentifiedCnvs(retestBoundGenes = TRUE, retestBoundSnps = FALSE, verbose=FALSE)
 
 ## look at final results
 results <- hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
-print(results)
+print(head(results))
 ## visualize as heatmap 
 trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
 ```
@@ -93,7 +93,8 @@ order <- hc$labels[hc$order]
 ## plot all chromosomes
 hb$plotGexpProfile(cellOrder=order)
 ## plot just identified cnvs
-hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']])
+hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']][['amp']])
+hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']][['del']])
 ```
 
 We thus confidently identify amplifications on Chr 5, 7, 20 and deletions on Chr 10, 13, and 14 affecting a subset of cells. 
@@ -138,7 +139,7 @@ print(regions.snp)
 
 Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell.
 
-```{r, fig.width=12, fig.height=4}
+```{r, fig.width=12, fig.height=12}
 hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE, verbose=FALSE)
 
 ## look at final results
@@ -158,11 +159,28 @@ order2 <- hc2$labels[hc2$order]
 ## plot all chromosomes
 hb$plotAlleleProfile(cellOrder=order) ## order cells by same order as previously
 ## plot just identified cnvs
-hb$plotAlleleProfile(cellOrder=order, region=hb$cnvs[['allele-based']])
+hb$plotAlleleProfile(cellOrder=order, region=hb$cnvs[['allele-based']][['del.loh']])
 
 ## compare to new order
 hb$plotAlleleProfile(cellOrder=order2) 
 hb$plotGexpProfile(cellOrder=order2) 
 ```
 
+Leveraging both allele and expression information can improve power and allow us to identify potential copy-neutral LOHs. We can test regions identified by either the expression or allele-based HMMs using both expression and allele information. 
 
+```{r, fig.width=12, fig.height=12}
+hb$retestIdentifiedCnvs(retestBoundGenes=TRUE, retestBoundSnps=TRUE, verbose=FALSE)
+
+## look at final results
+results <- hb$summarizeResults(geneBased=TRUE, alleleBased=TRUE)
+print(results)
+## visualize as heatmap 
+trees3 <- hb$visualizeResults(geneBased=TRUE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
+
+## order cells
+hc3 <- trees3$hc
+order3 <- hc3$labels[hc3$order]
+
+hb$plotGexpProfile(cellOrder=order3) 
+hb$plotAlleleProfile(cellOrder=order3) 
+```
