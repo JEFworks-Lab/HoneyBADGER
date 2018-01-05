@@ -29,9 +29,9 @@ opts_chunk$set(
 library(HoneyBADGER)
 ```
 
-As an example, we will load prepared data for tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396).
+`HoneyBADGER` identifies and quantitatively infers the presence of CNV and LOH events in single cells using allele and normalized expression information from single-cell RNA-seq data. In this tutorial, we will use `HoneyBADGER` to detect CNVs in glioblastoma tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). The single-cell RNA-seq data has been prepared for you and is included in the `HoneyBADGER` package. 
 
-First, we will load the gene expression matrices for tumor cells along with a normal expression reference derived from averaging normal brain samples found in [GTex](https://www.gtexportal.org/home/). We also load a corresponding biomaRt instance (for human) to obtain chromosomal coordinate information for our genes. 
+First, load the gene expression matrices for tumor cells along with a normal expression reference derived from averaging normal brain samples found in [GTex](https://www.gtexportal.org/home/). Also load a corresponding biomaRt instance (for human) to obtain chromosomal coordinate information for our genes. 
 
 ```{r}
 data(gexp) ## tumor cells
@@ -45,20 +45,25 @@ print(ref[1:5])
 print(mart.obj)
 ```
 
-Make a new `HoneyBADGER` object and initialize the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling.
+Make a new `HoneyBADGER` object and initialize the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling. 
 
-```{r, fig.width=12, fig.height=4}
+```{r}
 hb <- new('HoneyBADGER', name='MGH31')
 hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE, verbose=TRUE)
+```
+
+The inputted gene expression matrix is normalized using the reference such that we may expect large-scale deviations in expression from the reference on average to be indicative of underlying CNVs. We can visualize the smoothed gene expression using the following profile. 
+
+```{r, fig.width=12, fig.height=4}
 hb$plotGexpProfile() ## initial visualization
 ```
 
-Visually we may already visually suspect some chromosomal abnormalities on Chr 7, 10, 13, 14. We can model the gene expression variance and use a HMM to identify regions affected by CNVs.
+Here, each row is a single cell. Genes are organized based on their position along each chromosome. Expression has been smoothed using a sliding window approach. Red indicates higher average expression compared to the reference and blue indicates lower. Visually, such expression-based karyotyping already suggests some chromosomal abnormalities. To provide a more quantitative assessment, we can model the gene expression variance and use an iterative HMM approach to identify regions affected by CNVs.
 
 ```{r}
 hb$setMvFit(verbose=TRUE) ## model variance
 hb$setGexpDev(verbose=TRUE) ## model necessary expression deviation to identify CNVs
-hb$calcGexpCnvBoundaries(init=TRUE, verbose=TRUE) ## HMM
+hb$calcGexpCnvBoundaries(init=TRUE, verbose=FALSE) ## HMM
 
 ## double check what CNVs were identified
 bgf <- get('bound.genes.final', slot(hb, '.xData'))
@@ -67,78 +72,62 @@ regions.genes <- range(genes[unlist(bgf)])
 print(regions.genes)
 ```
 
-Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell and plot.
+Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell. We can cluster cells on these posterior probabilities and visualize them as a heatmap. 
 
-```{r}
-hb$retestIdentifiedCnvs()
+```{r, fig.width=12, fig.height=4}
+hb$retestIdentifiedCnvs(retestBoundGenes = TRUE, retestBoundSnps = FALSE, verbose=FALSE)
 
 ## look at final results
 results <- hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
-
-rgs <- range(hb$genes[unlist(hb$bound.genes.final),])
-      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-      retest <- hb$results[['gene-based']]
-      amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
-      del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-
-      ## filter to regions with at least some highly confident cells
-      vi1 <- rowSums(amp.gexp.prob > 0.75) > min.num.cells
-      amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
-      vi2 <- rowSums(del.gexp.prob > 0.75) > min.num.cells
-      del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
-      
-      rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
-      rownames(del.gexp.prob) <- paste0('del', names[vi2])
-
-      results <- rbind(amp.gexp.prob, del.gexp.prob)      
-hc <- hclust(dist(colSums(results)))
-order <- hc$labels[hc$order]
+print(results)
+## visualize as heatmap 
+trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
 ```
 
+We can again visualize our results, this time, ordering the cells based on their posterior probabilities of harboring CNVs. 
 
 ```{r, fig.width=12, fig.height=4}
+## order cells
+hc <- trees$hc
+order <- hc$labels[hc$order]
 ## plot all chromosomes
 hb$plotGexpProfile(cellOrder=order)
+## plot just identified cnvs
+hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']])
 ```
 
-```{r, fig.width=12, fig.height=4}
-## plot identified CNV region only
-hb$plotGexpProfile(cellOrder=order, region=regions.genes[vi1,]) ## amplifications
-hb$plotGexpProfile(cellOrder=order, region=regions.genes[vi2,]) ## deletions
-```
+We thus confidently identify amplifications on Chr 5, 7, 20 and deletions on Chr 10, 13, and 14 affecting a subset of cells. 
 
-
-```{r, fig.width=12, fig.height=8}
-## visualize as heatmap 
-hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, hc=hc, margins=c(25,15))
-```
-
-We can also analyze using allele information. Load the allele data and add them to our HoneyBADGER object.
+We can also identify CNVs using allele information. The allele model relies on persistent allelic imbalance detected from putative heterozygous variants to identify CNVs. Therefore, allele data for common heterozygous variants from ExAC for the same set of cells has also been prepared for you. Add them to your existing `HoneyBADGER` object. 
 
 ```{r}
-data(r)
-data(cov.sc)
+data(r) ## alternate allele
+data(cov.sc) ## total coverage
 
-hb <- new('HoneyBADGER', name='MGH31')
-hb$setAlleleMats(r.init=r, n.sc.init=cov.sc, n.cores=1, het.deviance.threshold=0.1)
-
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene) ## in order to map SNPs to genes
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-hb$setGeneFactors(txdb)
 ```
 
-
-```{r, fig.width=12, fig.height=4}
-
-hb$plotSmoothedAlleleProfile(cellOrder=hc$labels[hc$order])
-hb$plotAlleleProfile(cellOrder=hc$labels[hc$order])
-
-```
-
-Now run our allele HMM to identify putative regions affected by deletions or LOH.
+The allele matrices have already been filtered for sites with coverage in any cell and where both annotated alleles are observed. We will filter these SNPs further to guard against potential RNA-editing or sequencing errors before mapping them to genes. 
 
 ```{r}
-hb$calcAlleleCnvBoundaries(init=TRUE)
+#hb <- new('HoneyBADGER', name='MGH31')
+## Add to existing hb object
+hb$setAlleleMats(r.init=r, n.sc.init=cov.sc, het.deviance.threshold=0.1, n.cores=detectCores())
+hb$setGeneFactors(txdb) ## map SNPs to genes
+```
+
+We can visualize the allelic patterns using the following lesser allele fraction profile. 
+
+```{r, fig.width=12, fig.height=4}
+hb$plotAlleleProfile() ## visualize individual SNPs
+#hb$plotSmoothedAlleleProfile() ## smoothed option for high density data
+```
+
+Here, each row is again a single cell. Each column is a SNP. Dot size illustrates coverage at the SNP site and color denotes the allele bias with yellow meaning equal observation of both alleles. Blue is mono-allelic detection of either the lesser allele, defined as the allele that is less frequently observed across our population of cells. And red being the other allele. In the presence of a deletion, we expect to see persistent depletion of this lesser allele across our population of cells harboring the deletion. Indeed, we again can already visually suspect some chromosomal abnormalities on Chr 10, 13, and 14. To provide a more quantitative assessment, we can again use an HMM approach to identify regions affected by these deletions and LOHs. 
+
+```{r}
+hb$calcAlleleCnvBoundaries(init=TRUE, verbose=FALSE) ## HMM
 
 ## double check what CNVs were identified
 bsf <- get('bound.snps.final', slot(hb, '.xData'))
@@ -147,27 +136,33 @@ regions.snp <- range(snps[unlist(bsf)])
 print(regions.snp)
 ```
 
-We can again retest.
-
-```{r}
-hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE)
-
-retest <- get('results', slot(hb, '.xData'))[['allele-based']]
-results <- do.call(rbind, lapply(retest, function(x) x))
-```
+Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell.
 
 ```{r, fig.width=12, fig.height=4}
-hb$plotAlleleProfile(cellOrder=hc$labels[hc$order])
+hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE, verbose=FALSE)
 
-hb$plotAlleleProfile(cellOrder=hc$labels[hc$order], region=regions.snp[1])
-hb$plotAlleleProfile(cellOrder=hc$labels[hc$order], region=regions.snp[5])
-```
-
-```{r}
-hb$summarizeResults(geneBased=FALSE, alleleBased=TRUE)
-```
-
-```{r, fig.width=12, fig.height=4}
+## look at final results
+results <- hb$summarizeResults(geneBased=FALSE, alleleBased=TRUE)
+print(results)
 ## visualize as heatmap 
-hb$visualizeResults(geneBased=FALSE, alleleBased=TRUE, hc=hc)
+trees2 <- hb$visualizeResults(geneBased=FALSE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
 ```
+
+We can again visualize our results, this time, ordering the cells based on our previously identified cell ordering for comparison. 
+
+```{r, fig.width=12, fig.height=4}
+## order cells
+hc2 <- trees2$hc
+order2 <- hc2$labels[hc2$order]
+
+## plot all chromosomes
+hb$plotAlleleProfile(cellOrder=order) ## order cells by same order as previously
+## plot just identified cnvs
+hb$plotAlleleProfile(cellOrder=order, region=hb$cnvs[['allele-based']])
+
+## compare to new order
+hb$plotAlleleProfile(cellOrder=order2) 
+hb$plotGexpProfile(cellOrder=order2) 
+```
+
+

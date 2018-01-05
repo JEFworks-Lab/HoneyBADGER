@@ -4,8 +4,8 @@
 #' @field n.sc single cell snp coverage matrix
 #' @field l bulk alternative allele count vector
 #' @field n.bulk bulk snp coverage vector
-#' @field r.maf single cell minor allele count matrix
-#' @field l.maf bulk minor allele count vector
+#' @field r.maf single cell lesser allele count matrix
+#' @field l.maf bulk lesser allele count vector
 #' @field gexp.sc gene expression matrix
 #' @field gexp.ref reference gene expression matrix
 #' @field gexp.norm normalized gene expression matrix
@@ -21,6 +21,8 @@
 #' @field bound.genes.old temporary list of snps within cnv region used during recursion
 #' @field bound.genes.final list of snps within cnv region
 #' @field results retested posterior probabilities
+#' @field summary summary of posterior probabilities
+#' @field cnvs GenomicRanges of identified CNVs
 #'
 #' @export HoneyBADGER
 #' @exportClass HoneyBADGER
@@ -35,8 +37,8 @@ HoneyBADGER <- setRefClass(
         'n.sc', ## n.sc single cell snp coverage matrix
         'l', ## l bulk alternative allele count vector
         'n.bulk', ## n.bulk bulk snp coverage vector
-        'r.maf', ## r.maf single cell minor allele count matrix
-        'l.maf', ## l.maf bulk minor allele count vector
+        'r.maf', ## r.maf single cell lesser allele count matrix
+        'l.maf', ## l.maf bulk lesser allele count vector
         'gexp.sc', ## gexp.sc gene expression matrix
         'gexp.ref', ## gexp.ref reference gene expression matrix
         'gexp.norm', ## gexp.norm normalized gene expression matrix
@@ -51,7 +53,9 @@ HoneyBADGER <- setRefClass(
         'bound.snps.final', ## bound.snps.final list of snps within cnv region
         'bound.genes.old', ## bound.snps.old temporary list of snps within cnv region used during recursion
         'bound.genes.final', ## bound.snps.final list of snps within cnv region
-        'results' ## results retested posterior probabilities
+        'results', ## results retested posterior probabilities
+        'summary' ## summary of posterior probabilities
+        'cnvs' ## GenomicRanges of identified CNVs
     ),
 
     methods = list(        
@@ -82,6 +86,8 @@ HoneyBADGER <- setRefClass(
             bound.genes.final <<- list()
 
             results <<- list()
+            summary <<- list()
+            cnvs <<- list()
         }
         
     )
@@ -163,7 +169,7 @@ HoneyBADGER$methods(
             gos$chromosome_name <- paste0('chr', gos$chromosome_name)
         }
         gos <- na.omit(gos)
-        gs <- with(gos, GRanges(as.character(chromosome_name), IRanges(as.numeric(as.character(start_position)), as.numeric(as.character(end_position)))))
+        gs <- with(gos, GenomicRanges::GRanges(as.character(chromosome_name), IRanges::IRanges(as.numeric(as.character(start_position)), as.numeric(as.character(end_position)))))
         names(gs) <- rownames(gos)
         gvi <- intersect(rownames(gexp.norm), names(gs))
         genes <<- gs[gvi]
@@ -206,10 +212,10 @@ HoneyBADGER$methods(
             genes <- genes[rownames(gexp.norm.sub)]
         }
         if(!is.null(region)) {
-          overlap <- findOverlaps(region, genes)
+          overlap <- IRanges::findOverlaps(region, genes)
           ## which of the ranges did the position hit
           hit <- rep(FALSE, length(genes))
-          hit[subjectHits(overlap)] <- TRUE
+          hit[S4Vectors::subjectHits(overlap)] <- TRUE
           if(sum(hit) < 10) {
             cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
           }
@@ -372,11 +378,11 @@ HoneyBADGER$methods(
         fits <- mvFit
 
         if(!is.null(region)) {
-            overlap <- findOverlaps(region, gos)
+            overlap <- IRanges::findOverlaps(region, gos)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(gos))
             names(hit) <- names(gos)
-            hit[subjectHits(overlap)] <- TRUE
+            hit[S4Vectors::subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 return();
@@ -385,7 +391,9 @@ HoneyBADGER$methods(
                 cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
             }
             vi <- hit
-            cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+            if(verbose) {
+                cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+            }
             if(sum(vi) <= 1) {
                 pm <- rep(NA, ncol(gexp))
                 names(pm) <- colnames(gexp)
@@ -402,7 +410,9 @@ HoneyBADGER$methods(
         ##gexp <- rbind(apply(gexp, 2, mean), apply(gexp, 2, median))
 
         ## Model
-        cat('aggregating data to list ... \n')
+        if(verbose) {
+            cat('Aggregating data to list ... \n')
+        }
         data <- list(
             'K' = length(mu0),
             'JJ' = nrow(gexp),
@@ -412,7 +422,9 @@ HoneyBADGER$methods(
         )
         modelFile <-  system.file("bug", "expressionModel.bug", package = "HoneyBADGER")
 
-        cat('Initializing model ... \n')
+        if(verbose) {
+            cat('Initializing model ... \n')
+        }
         ##model <- jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
         ##update(model, 1000, progress.bar=ifelse(quiet,"none","text"))
         inits <- list(
@@ -429,8 +441,10 @@ HoneyBADGER$methods(
         samples <- coda.samples(model, parameters, n.iter=1000, progress.bar=ifelse(quiet,"none","text"))
         samples <- do.call(rbind, samples) # combine chains
 
-        cat('...Done!')
-
+        if(verbose) {
+            cat('...Done!')
+        }
+        
         snpLike <- samples
         v <- colnames(snpLike)
         S <- snpLike[,grepl('S', v)]
@@ -455,12 +469,16 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_setAlleleMats
 #'
 HoneyBADGER$methods(
-    setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=TRUE, het.deviance.threshold=0.05, min.cell=3, n.cores=1) {
-        cat("Initializing allele matrices ... \n")
-
+    setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=TRUE, het.deviance.threshold=0.05, min.cell=3, n.cores=1, verbose=TRUE) {
+        if(verbose) {  
+          cat("Initializing allele matrices ... \n")
+        }
+      
         if(is.null(l.init) | is.null(n.bulk.init)) {
-            cat("creating in-silico bulk ... \n")
+          if(verbose) { 
+            cat("Creating in-silico bulk ... \n")
             cat(paste0("using ", ncol(r.init), " cells ... \n"))
+          }
             l <<- rowSums(r.init>0)
             n.bulk <<- rowSums(n.sc.init>0)
         } else {
@@ -469,8 +487,10 @@ HoneyBADGER$methods(
         }
 
         if(filter) {
-            cat("filtering for putative heterozygous snps ... \n")
-            cat(paste0("allowing for a ", het.deviance.threshold, " deviation from the expected 0.5 heterozygous allele fraction ... \n"))
+            if(verbose) { 
+                cat("Filtering for putative heterozygous snps ... \n")
+                cat(paste0("allowing for a ", het.deviance.threshold, " deviation from the expected 0.5 heterozygous allele fraction ... \n"))
+            }
             E <- l/n.bulk
             vi <- names(which(E > het.deviance.threshold & E < 1-het.deviance.threshold))
             ##cat(paste0(length(vi), " heterozygous SNPs identified \n"))
@@ -483,7 +503,9 @@ HoneyBADGER$methods(
             n.bulk <<- n.bulk[vi]
 
             ## must have coverage in at least 5 cells
-            cat(paste0("must have coverage in at least ", min.cell, " cells ... \n"))
+            if(verbose) { 
+                cat(paste0("must have coverage in at least ", min.cell, " cells ... \n"))
+            }
             vi <- rowSums(n.sc > 0) >= min.cell
             cat(paste0(length(vi), " heterozygous SNPs identified \n"))
             r <<- r[vi,]
@@ -496,7 +518,9 @@ HoneyBADGER$methods(
             n.sc <<- n.sc.init
         }
         if(is.null(r.maf) | is.null(l.maf) | !is.null(r.init) | !is.null(l.init)) {
-            cat("setting composite minor allele count ... \n")
+            if(verbose) { 
+                cat("Setting composite lesser allele count ... \n")
+            }
             E <- l/n.bulk
             n <- nrow(r)
             m <- ncol(r)
@@ -566,10 +590,12 @@ HoneyBADGER$methods(
         if(!grepl('chr', snps.df[1,1])) {
             snps.df[,1] <- paste0('chr', snps.df[,1])
         }
-        snps <<- with(snps.df, GRanges(chr, IRanges(as.numeric(as.character(start)), as.numeric(as.character(end)))))
+        snps <<- with(snps.df, GenomicRanges::GRanges(chr, IRanges::IRanges(as.numeric(as.character(start)), as.numeric(as.character(end)))))
         names(snps) <<- rownames(r) <<- rownames(r.maf) <<- rownames(n.sc) <<- names(l) <<- names(l.maf) <<- names(n.bulk) <<- apply(snps.df, 1, paste0, collapse=":")
 
-        cat("Done setting initial allele matrices! \n")
+        if(verbose) { 
+            cat("Done setting initial allele matrices! \n")
+        }
     }
 )
 
@@ -613,10 +639,10 @@ HoneyBADGER$methods(
             n.bulk <- n.bulk.sub
         }
         if(!is.null(region)) {
-            overlap <- findOverlaps(region, snps)
+            overlap <- IRanges::findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[subjectHits(overlap)] <- TRUE
+            hit[S4Vectors::subjectHits(overlap)] <- TRUE
             if(sum(hit) < 10) {
                 cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
             }
@@ -672,7 +698,7 @@ HoneyBADGER$methods(
             
             p <- ggplot(dat, aes(snp, cell)) +
                 ## geom_tile(alpha=0) +
-                geom_point(aes(colour = alt.frac, size = coverage)) +
+                geom_point(aes(colour = alt.frac, size = coverage), na.rm=TRUE) +
                 scale_size_continuous(range = c(0, max.ps)) +
                 ## scale_colour_gradientn(colours = rainbow(10)) +
                 scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
@@ -733,10 +759,10 @@ HoneyBADGER$methods(
       n.bulk <- n.bulk.sub
     }
     if(!is.null(region)) {
-      overlap <- findOverlaps(region, snps)
+      overlap <- IRanges::findOverlaps(region, snps)
       ## which of the ranges did the position hit
       hit <- rep(FALSE, length(snps))
-      hit[subjectHits(overlap)] <- TRUE
+      hit[S4Vectors::subjectHits(overlap)] <- TRUE
       if(sum(hit) < 10) {
         cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
       }
@@ -841,9 +867,10 @@ HoneyBADGER$methods(
 #' @param mono Rate of mono-allelic expression. (default: 0.7)
 #' @param n.iter Number of iterations in MCMC. (default: 1000)
 #' @param quiet Boolean of whether to suppress progress bar. (default: TRUE)
+#' @param verbose Verbosity(default: FALSE)
 #' 
 HoneyBADGER$methods(
-    calcAlleleCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE) {
+    calcAlleleCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=TRUE, verbose=FALSE) {
         if(!is.null(r.sub)) {
             r.maf <- r.sub
             geneFactor <- geneFactor[rownames(r.sub)]
@@ -859,10 +886,10 @@ HoneyBADGER$methods(
             n.bulk <- n.bulk.sub
         }
         if(!is.null(region)) {
-            overlap <- findOverlaps(region, snps)
+            overlap <- IRanges::findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[subjectHits(overlap)] <- TRUE
+            hit[S4Vectors::subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 return();
@@ -888,11 +915,14 @@ HoneyBADGER$methods(
             geneFactor <- geneFactor[vi]
             snps <- snps[vi,]
         }
-        cat('Assessing posterior probability of CNV in region ... \n')
-        cat(paste0('with ', length(n.bulk), ' snps ... '))
-
+        if(verbose) {
+            cat('Assessing posterior probability of CNV in region ... \n')
+            cat(paste0('with ', length(n.bulk), ' snps ... '))
+        }
         genes.of.interest <- unique(geneFactor)
-        cat(paste0('within ', length(genes.of.interest), ' genes ... \n'))
+        if(verbose) {
+            cat(paste0('within ', length(genes.of.interest), ' genes ... \n'))
+        }
 
         ## associate each gene factor with a set of snps
         genes2snps.dict <- lapply(seq_along(genes.of.interest), function(i) {
@@ -901,8 +931,10 @@ HoneyBADGER$methods(
         names(genes2snps.dict) <- genes.of.interest
 
         ## Model
-        cat('converting to multi-dimensional arrays ... ')
-
+        if(verbose) {
+            cat('converting to multi-dimensional arrays ... ')
+        }
+        
         ## Convert to multi-dimensions based on j
         I.j <- unlist(lapply(genes2snps.dict, length))
         numGenes <- length(genes2snps.dict)
@@ -937,7 +969,9 @@ HoneyBADGER$methods(
                 n.bulk.array[i,s] <- n.bulk[snpst[s]]
             }
         }
-        cat('aggregating data to list ... \n')
+        if(verbose) {
+            cat('Aggregating data to list ... \n')
+        }
         data <- list(
             'l' = l.array,
             'r' = r.array,
@@ -951,12 +985,16 @@ HoneyBADGER$methods(
 
         modelFile <- system.file("bug", "snpModel.bug", package = "HoneyBADGER")
 
-        cat('Running model ... \n')
+        if(verbose) {
+            cat('Running model ... \n')
+        }
         require(rjags)
         model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
         update(model, 300, progress.bar=ifelse(quiet,"none","text"))
-        cat('Done modeling!')
-
+        if(verbose) {
+            cat('Done modeling!')
+        }
+        
         parameters <- 'S'
         samples <- coda.samples(model, parameters, n.iter=n.iter, progress.bar=ifelse(quiet,"none","text"))
         samples <- do.call(rbind, samples) # combine samples across chains
@@ -1100,8 +1138,7 @@ HoneyBADGER$methods(
             vote[bound.genes.old] <- 0 ## do not want to rediscover old bounds
 
             if(verbose) {
-                cat(paste0('max vote:', max(vote)))
-                cat("\n")
+                cat(paste0('max vote:', max(vote), '\n'))
             }
             if(max(vote)==0) {
                 if(verbose) {
@@ -1204,11 +1241,15 @@ HoneyBADGER$methods(
         
         ## need better threshold
         g1 <- colnames(prob.fin)[prob.fin > 0.75]
-        print("GROUP1:")
-        print(g1)
+        if(verbose) {
+          print("GROUP 1:")
+          print(g1)
+        }
         g2 <- colnames(prob.fin)[prob.fin <= 0.25]
-        print("GROUP2:")
-        print(g2)
+        if(verbose) {
+          print("GROUP 2:")
+          print(g2)
+        }
         ##clafProfile(r[, g1], n.sc[, g1], l, n.bulk)
         ##clafProfile(r[, g2], n.sc[, g2], l, n.bulk)
 
@@ -1222,13 +1263,13 @@ HoneyBADGER$methods(
         bound.genes.old <<- unique(c(bound.genes.new, bound.genes.old))
 
         ## Recursion
-        print('Recursion for Group1')
+        ##print('Recursion for Group1')
         if(length(g1)>=3) {
             tryCatch({
                 calcGexpCnvBoundaries(gexp.norm.sub=gexp.norm[, g1])
             }, error = function(e) { cat(paste0("ERROR: ", e)) })
         }
-        print('Recursion for Group2')
+        ##print('Recursion for Group2')
         if(length(g2)>=3) {
             tryCatch({
                 calcGexpCnvBoundaries(gexp.norm.sub=gexp.norm[, g2])
@@ -1276,7 +1317,9 @@ HoneyBADGER$methods(
             return()
         }
 
-        cat('ignore previously identified CNVs ... ')
+        if(verbose) {
+            cat('ignore previously identified CNVs ... ')
+        }
         ## remove old bound snps
         vi <- !(rownames(r.maf) %in% bound.snps.old)
         r.maf <- r.maf[vi,]
@@ -1284,7 +1327,7 @@ HoneyBADGER$methods(
         l.maf <- l.maf[vi]
         n.bulk <- n.bulk[vi]
 
-        ## Minor allele fraction
+        ## lesser allele fraction
         mat.tot <- r.maf/n.sc
 
         mat.smooth <- apply(mat.tot, 2, caTools::runmean, k=31)
@@ -1294,7 +1337,9 @@ HoneyBADGER$methods(
         d[is.infinite(d)] <- 0
         hc <- hclust(d, method="ward.D2")
 
-        cat('iterative HMM ... ')
+        if(verbose) {
+            cat('iterative HMM ... ')
+        }
 
         ## iterative HMM
         heights <- 1:min(min.traverse, ncol(r.maf))
@@ -1333,8 +1378,14 @@ HoneyBADGER$methods(
         })
         vote[bound.snps.old] <- 0 ## do not want to rediscover old bounds
 
-        cat(paste0('max vote:', max(vote)))
+        if(verbose) {
+            cat(paste0('max vote:', max(vote), '\n'))
+        }
+        
         if(max(vote)==0) {
+            if(verbose) {
+              cat('Exiting; no new bound SNPs found.\n')
+            }
             return() ## exit iteration, no more bound SNPs found
         }
 
@@ -1359,10 +1410,13 @@ HoneyBADGER$methods(
         tbv <- as.vector(tb); names(tbv) <- names(tb)
         tbv <- tbv[-1] # get rid of 0
 
-        ## all detected deletions have fewer than 5 genes...reached the end
+        ## all detected deletions have fewer than 5 SNPs...reached the end
         tbv[tbv < min.num.snps] <- NA
         tbv <- na.omit(tbv)
         if(length(tbv)==0) {
+            if(verbose) {
+              cat(paste0('Exiting; less than ', min.num.snps, ' new bound SNPs found.\n'))
+            }
             return()
         }
 
@@ -1381,7 +1435,7 @@ HoneyBADGER$methods(
             ##clafProfile(r[bound.snps.new, hc$labels[hc$order]], n.sc[bound.snps.new, hc$labels[hc$order]], l[bound.snps.new], n.bulk[bound.snps.new])
 
             ## now that we have boundaries, run on all cells
-            del.prob <- calcAlleleCnvProb(r.maf[bound.snps.new, ], n.sc[bound.snps.new, ], l.maf[bound.snps.new], n.bulk[bound.snps.new], region=NULL, n.iter=100, filter=FALSE, pe=pd, ...)
+            del.prob <- calcAlleleCnvProb(r.maf[bound.snps.new, ], n.sc[bound.snps.new, ], l.maf[bound.snps.new], n.bulk[bound.snps.new], region=NULL, n.iter=100, filter=FALSE, pe=pd, verbose=verbose, ...)
 
             if(verbose) {
                 cat("DELETION/LOH PROBABILITY:")
@@ -1390,7 +1444,7 @@ HoneyBADGER$methods(
             
             return(list('dp'=del.prob, 'bs'=bound.snps.new))
         })
-        print(del.prob.info)
+        ##print(del.prob.info)
 
         del.prob <- do.call(rbind, lapply(seq_along(del.prob.info), function(i) del.prob.info[[i]]$dp))
         bound.snps.list <- lapply(seq_along(del.prob.info), function(i) del.prob.info[[i]]$bs)
@@ -1427,11 +1481,15 @@ HoneyBADGER$methods(
         
         ## need better threshold
         g1 <- colnames(del.prob.fin)[del.prob.fin > 0.75]
-        cat("GROUP1:")
-        cat(g1)
+        if(verbose) {
+            cat("GROUP1:")
+            cat(g1)
+        }
         g2 <- colnames(del.prob.fin)[del.prob.fin <= 0.25]
-        cat("GROUP2:")
-        cat(g2)
+        if(verbose) {
+            cat("GROUP 2:")
+            cat(g2)
+        }
         ##clafProfile(r[, g1], n.sc[, g1], l, n.bulk)
         ##clafProfile(r[, g2], n.sc[, g2], l, n.bulk)
 
@@ -1503,11 +1561,11 @@ HoneyBADGER$methods(
 
         if(!is.null(region)) {
             ## limit gexp
-            overlap <- findOverlaps(region, gos)
+            overlap <- IRanges::findOverlaps(region, gos)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(gos))
             names(hit) <- names(gos)
-            hit[subjectHits(overlap)] <- TRUE
+            hit[S4Vectors::subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " GENES IN REGION! \n"))
                 return();
@@ -1516,7 +1574,9 @@ HoneyBADGER$methods(
                 cat(paste0("WARNING! ONLY ", sum(hit), " GENES IN REGION! \n"))
             }
             vi <- hit
-            cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+            if(verbose) {
+                cat(paste0("restricting to ", sum(vi), " genes in region \n"))
+            }
             if(sum(vi) <= 1) {
                 pm <- rep(NA, ncol(gexp))
                 names(pm) <- colnames(gexp)
@@ -1525,10 +1585,10 @@ HoneyBADGER$methods(
             gexp <- gexp[vi,]
 
             ## limit snp mats
-            overlap <- findOverlaps(region, snps)
+            overlap <- IRanges::findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
-            hit[subjectHits(overlap)] <- TRUE
+            hit[S4Vectors::subjectHits(overlap)] <- TRUE
             if(sum(hit) <= 1) {
                 cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 return();
@@ -1564,8 +1624,10 @@ HoneyBADGER$methods(
         }
         
         genes.of.interest <- unique(geneFactor)
-        cat(paste0('within ', length(genes.of.interest), ' genes ... \n'))
-
+        if(verbose) {
+            cat(paste0('... within ', length(genes.of.interest), ' genes ... \n'))
+        }
+        
         ## associate each gene factor with a set of snps
         genes2snps.dict <- lapply(seq_along(genes.of.interest), function(i) {
             names(geneFactor)[which(geneFactor %in% genes.of.interest[i])]
@@ -1639,7 +1701,10 @@ HoneyBADGER$methods(
         
         modelFile <- system.file("bug", "combinedModel.bug", package = "HoneyBADGER")
         
-        cat('Initializing model...')
+        if(verbose) {
+            cat('Initializing model...')
+        }
+        
         model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
         update(model, 300, progress.bar=ifelse(quiet,"none","text"))
         
@@ -1653,9 +1718,9 @@ HoneyBADGER$methods(
         dd <- snpLike[,grepl('dd', v)]
         ##plot(mu0, colMeans(mu))
         delcall <- apply(S*(1-dd), 2, mean)
-        delcall
+        ##delcall
         ampcall <- apply(S*dd, 2, mean)
-        ampcall
+        ##ampcall
         ##plot(mu0, delcall)
         ##plot(mu0, ampcall)
         names(ampcall) <- names(delcall) <- colnames(gexp)
@@ -1672,9 +1737,11 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_retestIdentifiedCnvs
 #' 
 HoneyBADGER$methods(
-    retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE, ...) {
+    retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE, verbose=FALSE, ...) {
         if(retestBoundGenes) {
-            cat('Retesting bound genes ... ')
+            if(verbose) {
+                cat('Retesting bound genes ... ')
+            }
             if(length(bound.genes.final)==0) {
                 cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
             } else {
@@ -1686,15 +1753,18 @@ HoneyBADGER$methods(
                 ## })
                 rgs <- range(genes[unlist(bound.genes.final),])
                 retest <- lapply(seq_len(length(rgs)), function(i) {
-                    x <- calcGexpCnvProb(region=rgs[i], m=dev, ...)
+                    x <- calcGexpCnvProb(region=rgs[i], m=dev, verbose=verbose, ...)
                     list(x[[1]], x[[2]])
                 })
+                cnvs[['genes-based']] <<- rgs
                 results[['gene-based']] <<- retest
             }
         }
 
         if(retestBoundSnps) {
-            cat('Retesting bound snps ... ')
+            if(verbose) {
+                cat('Retesting bound snps ... ')
+            }
             if(length(bound.snps.final)==0) {
                 cat('ERROR NO SNPS AFFECTED BY CNVS IDENTIFIED! Run calcAlleleCnvBoundaries()? ')
             } else {
@@ -1706,15 +1776,18 @@ HoneyBADGER$methods(
                 ## })
                 rgs <- range(snps[unlist(bound.snps.final),])
                 retest <- lapply(seq_len(length(rgs)), function(i) {
-                    x <- calcAlleleCnvProb(region=rgs[i], ...)
+                    x <- calcAlleleCnvProb(region=rgs[i], verbose=verbose, ...)
                     x
                 })
+                cnvs[['allele-based']] <<- rgs
                 results[['allele-based']] <<- retest
             }
         }
 
         if(retestBoundSnps & retestBoundGenes) {
-            cat('Retesting bound snps and genes using joint model')
+            if(verbose) {
+                cat('Retesting bound snps and genes using joint model')
+            }
             if(length(bound.genes.final)==0) {
                 cat('ERROR NO GENES AFFECTED BY CNVS IDENTIFIED! Run calcGexpCnvBoundaries()? ')
                 return();
@@ -1733,9 +1806,10 @@ HoneyBADGER$methods(
             }
             
             retest <- lapply(seq_len(length(rgs)), function(i) {
-                x <- calcCombCnvProb(region=rgs[i], m=dev, ...)
+                x <- calcCombCnvProb(region=rgs[i], m=dev, verbose=verbose, ...)
                 list(x[[1]], x[[2]])
             })
+            cnvs[['combine-based']] <<- rgs
             results[['combine-based']] <<- retest
         }
     }
@@ -1759,21 +1833,32 @@ HoneyBADGER$methods(
             amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
             vi2 <- rowSums(del.gexp.prob > 0.75) > min.num.cells
             del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
-            ret <- cbind(del.gexp.prob, amp.gexp.prob)
+            
+            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
+            rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
+            rownames(del.gexp.prob) <- paste0('del', names[vi2])
+            ret <- rbind(del.gexp.prob, amp.gexp.prob)
+            summary[['gene-based']] <<- ret
             
             colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
             colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
             df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)
             
-            print(df)
-            
-            return(ret)
         }
         if(alleleBased & !geneBased) {
             rgs <- range(snps[unlist(bound.snps.final),])
             retest <- results[['allele-based']]
             del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
-            colnames(del.loh.allele.prob) <- paste0('del.loh.allele ', colnames(del.loh.allele.prob))
+            
+            ## filter to regions with at least some highly confident cells
+            vi1 <- rowSums(del.loh.allele.prob > 0.75) > min.num.cells
+            del.loh.allele.prob <- del.loh.allele.prob[vi1,] ## amplifications
+            
+            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
+            rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
+            summary[['allele-based']] <<- del.loh.allele.prob
+            
+            colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
             df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
         }
         if(alleleBased & geneBased) {
@@ -1784,6 +1869,19 @@ HoneyBADGER$methods(
             retest <- results[['combine-based']]
             amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
             del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
+            
+            ## filter to regions with at least some highly confident cells
+            vi1 <- rowSums(amp.comb.prob > 0.75) > min.num.cells
+            amp.comb.prob <- amp.comb.prob[vi1,] ## amplifications
+            vi2 <- rowSums(del.comb.prob > 0.75) > min.num.cells
+            del.comb.prob <- del.comb.prob[vi2,] ## amplifications
+            
+            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
+            rownames(amp.comb.prob) <- paste0('amp', names[vi1])
+            rownames(del.comb.prob) <- paste0('del', names[vi2])
+            ret <- rbind(del.comb.prob, amp.comb.prob)
+            summary[['combine-based']] <<- ret
+            
             colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
             colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
             df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
@@ -1797,47 +1895,15 @@ HoneyBADGER$methods(
 #' @name HoneyBADGER_visualizeResults
 #' 
 HoneyBADGER$methods(
-  visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL, vc=NULL, power=1, min.num.cells=2, ...) {
+  visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL, vc=NULL, power=1, details=FALSE, ...) {
     if(geneBased & !alleleBased) {
-      rgs <- range(genes[unlist(bound.genes.final),])
-      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-      retest <- results[['gene-based']]
-      amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
-      del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-
-      ## filter to regions with at least some highly confident cells
-      vi1 <- rowSums(amp.gexp.prob > 0.75) > min.num.cells
-      amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
-      vi2 <- rowSums(del.gexp.prob > 0.75) > min.num.cells
-      del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
-      
-      rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
-      rownames(del.gexp.prob) <- paste0('del', names[vi2])
-      df <- rbind(amp.gexp.prob, del.gexp.prob)
+      df <- summary[['gene-based']]
     }
     if(alleleBased & !geneBased) {
-      rgs <- range(snps[unlist(bound.snps.final),])
-      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-      retest <- results[['allele-based']]
-      del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
-      colnames(del.loh.allele.prob) <- paste0('del.loh.allele ', colnames(del.loh.allele.prob))
-      rownames(del.loh.allele.prob) <- names
-      df <- del.loh.allele.prob
+      df <- summary[['allele-based']]
     }
     if(alleleBased & geneBased) {
-      gr <- range(genes[unlist(bound.genes.final),])
-      sr <- range(snps[unlist(bound.snps.final),])
-      rgs <- intersect(gr, sr)
-      names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-      
-      retest <- results[['combine-based']]
-      amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
-      del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-      colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
-      colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
-      rownames(amp.gexp.prob) <- paste0('amp', names)
-      rownames(del.gexp.prob) <- paste0('del', names)
-      df <- rbind(amp.gexp.prob, del.gexp.prob)    
+      df <- summary[['combine-based']]   
     }
     
     ## visualize as heatmap 
@@ -1848,5 +1914,8 @@ HoneyBADGER$methods(
       vc <- hclust(dist(df), method='ward.D')
     } 
     heatmap(t(df)^(power), Colv=as.dendrogram(vc), Rowv=as.dendrogram(hc), scale="none", col=colorRampPalette(c('beige', 'grey', 'black'))(100), ...)
+    if(details) {
+      return(list(hc=hc, vc=vc))
+    }
   }
 )
