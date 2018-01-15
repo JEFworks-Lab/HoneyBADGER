@@ -79,7 +79,7 @@ hb$retestIdentifiedCnvs(retestBoundGenes = TRUE, retestBoundSnps = FALSE, verbos
 
 ## look at final results
 results <- hb$summarizeResults(geneBased=TRUE, alleleBased=FALSE)
-print(head(results))
+print(head(results[,1:5]))
 ## visualize as heatmap 
 trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
 ```
@@ -144,7 +144,7 @@ hb$retestIdentifiedCnvs(retestBoundGenes=FALSE, retestBoundSnps=TRUE, verbose=FA
 
 ## look at final results
 results <- hb$summarizeResults(geneBased=FALSE, alleleBased=TRUE)
-print(results)
+print(head(results[,1:5]))
 ## visualize as heatmap 
 trees2 <- hb$visualizeResults(geneBased=FALSE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
 ```
@@ -166,21 +166,11 @@ hb$plotAlleleProfile(cellOrder=order2)
 hb$plotGexpProfile(cellOrder=order2) 
 ```
 
-Leveraging both allele and expression information can improve power and allow us to identify potential copy-neutral LOHs. We can test regions identified by either the expression or allele-based HMMs using both expression and allele information. 
+Thus, we confirm the deletion on Chr 10, 13, and 14 in agreement with our expression-based approach. While an allele-based approach is not able to identify amplifications like an expression-based approach, we are generally able to have improved resolution for identifying smaller deletions such as the one on Chr 19. 
 
-```{r, fig.width=12, fig.height=12}
+Leveraging both allele and expression information can improve power and allow us to identify potential copy-neutral LOHs. We can test regions identified by either the expression or allele-based HMMs using both expression and allele information and repeat downstream visualizations as desired.
+
+```{r, eval=FALSE}
 hb$retestIdentifiedCnvs(retestBoundGenes=TRUE, retestBoundSnps=TRUE, verbose=FALSE)
-
-## look at final results
 results <- hb$summarizeResults(geneBased=TRUE, alleleBased=TRUE)
-print(results)
-## visualize as heatmap 
-trees3 <- hb$visualizeResults(geneBased=TRUE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
-
-## order cells
-hc3 <- trees3$hc
-order3 <- hc3$labels[hc3$order]
-
-hb$plotGexpProfile(cellOrder=order3) 
-hb$plotAlleleProfile(cellOrder=order3) 
 ```
