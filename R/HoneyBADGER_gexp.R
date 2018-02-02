@@ -491,23 +491,3 @@ calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:
         ))
         
     }
-
-
-amp.results <- do.call(rbind, lapply(amp.ranges, function(x) {
-    ## del prob
-    calcGexpCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, mvFit, m=dev, region=x, verbose=TRUE)[[1]]
-}))
-rownames(amp.results) <- paste0(amp.ranges)
-del.results <- do.call(rbind, lapply(del.ranges, function(x) {
-    ## del prob
-    calcGexpCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, mvFit, m=dev, region=x, verbose=TRUE)[[2]]
-}))
-rownames(del.results) <- paste0(del.ranges)
-
-vi2 <- rowSums(del.results>0.9)>10
-foo <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, region=del.ranges[vi2], cellOrder='set')
-heatmap(del.results[vi2,foo$cellOrder], Rowv=NA, scale="none", col=colorRampPalette(c('white', 'black'))(100))
-
-vi1 <- rowSums(amp.results>0.9)>10
-heatmap(amp.results[vi1,foo$cellOrder], Rowv=NA, scale="none", col=colorRampPalette(c('white', 'black'))(100))
-plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, region=amp.ranges[vi1], cellOrder=foo$cellOrder)
