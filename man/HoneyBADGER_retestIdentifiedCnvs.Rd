@@ -3,6 +3,17 @@
 \name{HoneyBADGER_retestIdentifiedCnvs}
 \alias{HoneyBADGER_retestIdentifiedCnvs}
 \title{Calculate posterior probability of CNVs for regions identified by the recursive HMM approach}
+\arguments{
+\item{retestBoundGenes}{Boolean of whether to retest using expression model}
+
+\item{retestBoundSnps}{Boolean of whether to retest using allele model}
+
+\item{intersect}{If true will intersect regions identified from allele and expression HMMs. Otherwise, will union}
+
+\item{verbose}{Verbosity}
+
+\item{...}{Additional parameters to pass to calcGexpCnvProb or calcAlleleCnvProb}
+}
 \description{
 Calculate posterior probability of CNVs for regions identified by the recursive HMM approach
 }

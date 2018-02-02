@@ -3,6 +3,23 @@
 \name{HoneyBADGER_calcGexpCnvBoundaries}
 \alias{HoneyBADGER_calcGexpCnvBoundaries}
 \title{Recursive HMM to identify CNV boundaries using normalized gene expression data}
+\arguments{
+\item{gexp.norm.sub}{Optional normalized gene expression matrix. Useful for manual testing of restricted regions. If NULL, gexp.norm within the HoneyBADGER object will be used.}
+
+\item{chrs}{List of chromosome names. Genes not mapping to these chromosomes will be excluded. Default autosomes only: paste0('chr', c(1:22))}
+
+\item{min.traverse}{Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)}
+
+\item{min.num.genes}{Minimum number of genes within a CNV. (default: 5)}
+
+\item{t}{HMM transition parameter. Higher number, more transitions. (default: 1e-6)}
+
+\item{init}{Initialize recursion (default: FALSE)}
+
+\item{verbose}{Verbosity (default: FALSE)}
+
+\item{...}{Additional parameters for \code{\link{calcGexpCnvProb}}}
+}
 \description{
 Recursive HMM to identify CNV boundaries using normalized gene expression data
 }

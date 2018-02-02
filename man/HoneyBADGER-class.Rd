@@ -19,9 +19,9 @@ A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
 
 \item{\code{n.bulk}}{bulk snp coverage vector}
 
-\item{\code{r.maf}}{single cell minor allele count matrix}
+\item{\code{r.maf}}{single cell lesser allele count matrix}
 
-\item{\code{l.maf}}{bulk minor allele count vector}
+\item{\code{l.maf}}{bulk lesser allele count vector}
 
 \item{\code{gexp.sc}}{gene expression matrix}
 
@@ -30,6 +30,8 @@ A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
 \item{\code{gexp.norm}}{normalized gene expression matrix}
 
 \item{\code{mvFit}}{estimated expression magnitude variance as a function of number of genes}
+
+\item{\code{dev}}{expected absolute gene expression deviance due to CNV}
 
 \item{\code{snps}}{GenomicRanges representation of snps in r}
 
@@ -50,6 +52,10 @@ A Reference Class to represent single-cell RNA-seq data for HoneyBADGER analysis
 \item{\code{bound.genes.final}}{list of snps within cnv region}
 
 \item{\code{results}}{retested posterior probabilities}
+
+\item{\code{summary}}{summary of posterior probabilities}
+
+\item{\code{cnvs}}{GenomicRanges of identified CNVs}
 }}
 
 

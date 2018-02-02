@@ -3,6 +3,13 @@
 \name{HoneyBADGER_summarizeResults}
 \alias{HoneyBADGER_summarizeResults}
 \title{Summarize results}
+\arguments{
+\item{geneBased}{Boolean of whether to summarize gene-based results}
+
+\item{alleleBased}{Boolean of whether to summarize allele-based results}
+
+\item{min.num.cells}{CNV must be present in this minimum number of cells}
+}
 \description{
 Summarize results
 }

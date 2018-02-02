@@ -8,9 +8,11 @@
 
 \item{m}{Expected mean deviation due to copy number change (default: 0.15)}
 
-\item{region}{GenomicRanges region of interest such as expected CNV boundaries}
+\item{region}{Optional GenomicRanges region of interest such as expected CNV boundaries. (default: NULL)}
 
-\item{quiet}{Boolean for whether to suppress progress display}
+\item{quiet}{Boolean for whether to suppress progress display (default: TRUE)}
+
+\item{verbose}{Verbosity (default: FALSE)}
 }
 \description{
 Calculate posterior probability of CNVs using normalized expression data

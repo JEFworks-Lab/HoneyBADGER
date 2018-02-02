@@ -9,6 +9,8 @@
 \item{rep}{Number of repeats/resampling (default: 50)}
 
 \item{plot}{Whether to plot (default: FALSE)}
+
+\item{verbose}{Verbosity (default: TRUE)}
 }
 \description{
 Model expected gene expression variance as a function of number of genes

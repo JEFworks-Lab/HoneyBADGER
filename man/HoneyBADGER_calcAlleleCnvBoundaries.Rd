@@ -3,6 +3,33 @@
 \name{HoneyBADGER_calcAlleleCnvBoundaries}
 \alias{HoneyBADGER_calcAlleleCnvBoundaries}
 \title{Recursive HMM to identify CNV boundaries using allele data}
+\arguments{
+\item{r.sub}{Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.}
+
+\item{n.sub}{Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.}
+
+\item{l.sub}{Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.}
+
+\item{n.bulk.sub}{Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.}
+
+\item{min.traverse}{Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)}
+
+\item{t}{HMM transition parameter. Higher number, more transitions. (default: 1e-6)}
+
+\item{pd}{Probability of lesser allele detection in deleted region (ie. due to error)}
+
+\item{pn}{Probability of lesser allele detection in neutral region (ie. 0.5 - error rate)}
+
+\item{min.num.snps}{Minimum number of snps in candidate CNV}
+
+\item{trim}{Trim boundary SNPs}
+
+\item{init}{Boolean whether to initialize}
+
+\item{verbose}{Verbosity(default: FALSE)}
+
+\item{...}{Additional parameters to pass to calcAlleleCnvProb}
+}
 \description{
 Recursive HMM to identify CNV boundaries using allele data
 }
