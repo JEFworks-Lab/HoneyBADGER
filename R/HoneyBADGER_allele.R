@@ -3,7 +3,6 @@
 
 #' Set allele count matrices, creates in-silico pooled single cells as bulk reference if none provided
 #' 
-#' @name setAlleleMats
 #' @param r.init SNP site alternate allele count matrix for single cells
 #' @param n.sc.init SNP site coverage count matrix for single cells
 #' @param l.init SNP site alternate allele counts for bulk reference. If NULL, in silico bulk will be created from single cells.
@@ -17,6 +16,8 @@
 #' data(r)
 #' data(cov.sc)
 #' allele.mats <- setAlleleMats(r, cov.sc)
+#' 
+#' @export
 #'
 setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=TRUE, het.deviance.threshold=0.05, min.cell=3, n.cores=1, verbose=TRUE) {
         if(verbose) {  
@@ -43,8 +44,10 @@ setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=
             E <- l/n.bulk
             vi <- names(which(E > het.deviance.threshold & E < 1-het.deviance.threshold))
             ##cat(paste0(length(vi), " heterozygous SNPs identified \n"))
-            if(length(vi) < 0.01*length(l)) {
+            if(verbose) {
+              if(length(vi) < 0.01*length(l)) {
                 cat("WARNING! CLONAL DELETION OR LOH POSSIBLE! \n")
+              }
             }
             r <- r.init[vi,]
             n.sc <- n.sc.init[vi,]
@@ -172,6 +175,8 @@ setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=
 #' library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' 
+#' @export
+#' 
 setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
         if(verbose) {
             cat("Mapping snps to genes ... \n")
@@ -193,11 +198,11 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 
 #' Plot allele profile
 #'
-#' @name HoneyBADGER_plotAlleleProfile
 #' @param r.sub SNP lesser allele count matrix for single cells. If NULL, object's r.maf will be used
 #' @param n.sc.sub SNP coverage count matrix for single cells. If NULL, object's n.sc will be used 
 #' @param l.sub SNP lesser allele count matrix for bulk refernece. If NULL, object's l.maf will be used
 #' @param n.bulk.sub SNP coverage count matrix for bulk refernece. If NULL, object's n.bulk will be used
+#' @param snps SNP annotations
 #' @param region Limit plotting to particular GenomicRanges regions
 #' @param chrs Limit plotting to select chromosomes. Default autosomes only. (default: paste0('chr', c(1:22))) 
 #' @param widths Widths of chromosomes in plot. If 'set' will depend on number of SNPs in region. Else will be equal.
@@ -209,22 +214,25 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 #' data(r)
 #' data(cov.sc)
 #' allele.mats <- setAlleleMats(r, cov.sc)
-#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 #' 
-plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, region=NULL, chrs=paste0('chr', c(1:22)), widths=NULL, cellOrder=NULL, filter=FALSE, max.ps=3) {
+plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=paste0('chr', c(1:22)), widths=NULL, cellOrder=NULL, filter=FALSE, max.ps=3) {
         if(!is.null(region)) {
             overlap <- IRanges::findOverlaps(region, snps)
             ## which of the ranges did the position hit
             hit <- rep(FALSE, length(snps))
             hit[S4Vectors::subjectHits(overlap)] <- TRUE
-            if(sum(hit) < 10) {
-                cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+            if(verbose) {
+              if(sum(hit) < 10) {
+                  cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+              }
             }
             vi <- hit
             r.maf <- r.maf[vi,]
             n.sc <- n.sc[vi,]
             l.maf <- l.maf[vi]
             n.bulk <- n.bulk[vi]
+            snps <- snps[vi]
             
             chrs <- region@seqnames@values 
         }
@@ -339,7 +347,6 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, region=NULL, chrs=paste0(
 
 #' Calculate posterior probability of CNVs using allele data
 #'
-#' @name HoneyBADGER_calcAlleleCnvProb
 #' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
 #' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
 #' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
@@ -357,7 +364,10 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, region=NULL, chrs=paste0(
 #' allele.mats <- setAlleleMats(r, cov.sc)
 #' library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
+#' ## test region known to be commonly deleted in glioblastoma
 #' results <- calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
+#' 
+#' @export
 #' 
 calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=NULL, filter=FALSE, pe=0.1, mono=0.7, verbose=FALSE) {
     quiet = !verbose
@@ -371,8 +381,10 @@ calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=
                 cat(paste0("ERROR! ONLY ", sum(hit), " SNPS IN REGION! \n"))
                 return();
             }
-            if(sum(hit) < 10) {
-                cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+            if(verbose) {
+              if(sum(hit) < 10) {
+                  cat(paste0("WARNING! ONLY ", sum(hit), " SNPS IN REGION! \n"))
+              }
             }
             vi <- hit
             r.maf <- r.maf[vi,]
@@ -484,3 +496,141 @@ calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=
     }
 
 
+#' Use HMM to identify potential CNV boundaries based on patterns of persistent allelic imbalance
+#' 
+#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
+#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
+#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
+#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.  
+#' @param min.traverse Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)
+#' @param t HMM transition parameter. Higher number, more transitions. (default: 1e-6)
+#' @param pd Probability of lesser allele detection in deleted region (ie. due to error) 
+#' @param pn Probability of lesser allele detection in neutral region (ie. 0.5 - error rate) 
+#' @param min.num.snps Minimum number of snps in candidate CNV
+#' @param trim Trim boundary SNPs
+#' @param init Boolean whether to initialize
+#' @param verbose Verbosity(default: FALSE)
+#' @param ... Additional parameters to pass to calcAlleleCnvProb
+#' 
+#' @examples {
+#' data(r)
+#' data(cov.sc)
+#' allele.mats <- setAlleleMats(r, cov.sc)
+#' library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+#' geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
+#' potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
+#' ## visualize affected regions
+#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
+#' }
+#' 
+#' @export
+#' 
+calcAlleleCnvBoundaries=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, min.traverse=3, t=1e-6, pd=0.1, pn=0.45, min.num.snps=5, trim=0.1, verbose=FALSE, ...) {
+  
+  snps <- snps[rownames(r.maf)]
+  geneFactor <- geneFactor[rownames(r.maf)]
+  
+  ## lesser allele fraction
+  mat.tot <- r.maf/n.sc
+  
+  mat.smooth <- apply(mat.tot, 2, caTools::runmean, k=31)
+  d <- dist(t(mat.smooth))
+  d[is.na(d)] <- 0
+  d[is.nan(d)] <- 0
+  d[is.infinite(d)] <- 0
+  hc <- hclust(d, method="ward.D2")
+  
+  if(verbose) {
+    cat(paste0('Running single round of HMM with tree cut height ', min.traverse, '... '))
+  }
+  
+  ## HMM
+  heights <- 1:min(min.traverse, ncol(r.maf))
+  ## cut tree at various heights to establish groups
+  boundsnps.pred <- lapply(heights, function(h) {
+    
+    ct <- cutree(hc, k = h)
+    
+    cuts <- unique(ct)
+    
+    ## look at each group, if deletion present
+    boundsnps.pred <- lapply(cuts, function(group) {
+      if(sum(ct==group)>1) {
+        mafl <- rowSums(r.maf[, ct==group]>0)
+        sizel <- rowSums(n.sc[, ct==group]>0)
+        
+        ## change point
+        delta <- c(0, 1)
+        z <- HiddenMarkov::dthmm(mafl, matrix(c(1-t, t, t, 1-t), byrow=TRUE, nrow=2), delta, "binom", list(prob=c(pd, pn)), list(size=sizel), discrete=TRUE)
+        results <- HiddenMarkov::Viterbi(z)
+        
+        ## Get boundaries from states
+        boundsnps <- rownames(r.maf)[results == 1]
+        return(boundsnps)
+      }
+    })
+  })
+  
+  foo <- rep(0, nrow(r.maf)); names(foo) <- rownames(r.maf)
+  foo[unique(unlist(boundsnps.pred))] <- 1
+  ## vote
+  vote <- rep(0, nrow(r.maf))
+  names(vote) <- rownames(r.maf)
+  lapply(boundsnps.pred, function(b) {
+    vote[b[[1]]] <<- vote[b[[1]]] + 1
+  })
+
+  if(verbose) {
+    cat(paste0('max vote:', max(vote), '\n'))
+  }
+  
+  if(max(vote)==0) {
+    if(verbose) {
+      cat('No SNPs affected by CNVs found.\n')
+    }
+    return() ## exit iteration, no more bound SNPs found
+  }
+  
+  vote[vote > 0] <- 1
+
+  mv <- 1 ## at least 1 vote
+  cs <- 1
+  bound.snps.cont <- rep(0, length(vote))
+  names(bound.snps.cont) <- names(vote)
+  for(i in 2:length(vote)) {
+    ##if(vote[i] == mv & vote[i] == vote[i-1]) {
+    if(vote[i] >= mv & vote[i] == vote[i-1]) {
+      bound.snps.cont[i] <- cs
+    } else {
+      cs <- cs + 1
+    }
+  }
+  tb <- table(bound.snps.cont)
+  tbv <- as.vector(tb); names(tbv) <- names(tb)
+  tbv <- tbv[-1] # get rid of 0
+  
+  ## all detected deletions have fewer than 5 SNPs...reached the end
+  tbv[tbv < min.num.snps] <- NA
+  tbv <- na.omit(tbv)
+  if(length(tbv)==0) {
+    if(verbose) {
+      cat(paste0('Exiting; less than ', min.num.snps, ' SNPs affected by CNVs found.\n'))
+    }
+    return()
+  }
+  
+  ## test each of these highly confident deletions
+  boundsnps.info <- lapply(names(tbv), function(ti) {
+    bound.snps.new <- names(bound.snps.cont)[bound.snps.cont == ti]
+    
+    ## trim
+    bound.snps.new <- bound.snps.new[1:round(length(bound.snps.new)-length(bound.snps.new)*trim)]
+  })
+  boundsnps.region <- do.call("c", lapply(boundsnps.info, function(bs) range(snps[bs])))
+  
+  if(verbose) {
+    print(paste0("Identified ", length(boundsnps.region), " potential CNVs"))
+  }
+  return(list(info=boundsnps.info, regions=boundsnps.region))
+  
+}

@@ -21,6 +21,8 @@
 #' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' 
+#' @export
+#' 
 setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=0, minMeanTest=mean(gexp.sc.init[gexp.sc.init!=0]), minMeanRef=mean(gexp.ref.init[gexp.ref.init!=0]), scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
         if(verbose) {
             cat("Initializing expression matrices ... \n")
@@ -115,6 +117,8 @@ setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMean
 #' ##Set by known chromosome size widths:
 #' ##https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
 #' gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+#' 
+#' @export
 #' 
 plotGexpProfile=function(gexp.norm, genes, chrs=paste0('chr', c(1:22)), region=NULL, window.size=101, zlim=c(-2,2), cellOrder=NULL, widths=NULL) {
         genes <- genes[rownames(gexp.norm)]
@@ -211,6 +215,8 @@ plotGexpProfile=function(gexp.norm, genes, chrs=paste0('chr', c(1:22)), region=N
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' mvFit <- setMvFit(gexp.mats$gexp.norm)
 #' 
+#' @export
+#' 
 setMvFit=function(gexp.norm, num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE, verbose=TRUE) {
         if(verbose) {
             cat('Modeling expected variance ... ')
@@ -288,6 +294,8 @@ setMvFit=function(gexp.norm, num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' dev <- setGexpDev(gexp.mats$gexp.norm)
 #' 
+#' @export
+#' 
 setGexpDev=function(gexp.norm, alpha=0.25, n=100, seed=0, plot=FALSE, verbose=FALSE) {
         k = 101
         set.seed(seed)
@@ -329,6 +337,8 @@ setGexpDev=function(gexp.norm, alpha=0.25, n=100, seed=0, plot=FALSE, verbose=FA
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' mvFit <- setMvFit(gexp.mats$gexp.norm)
 #' results <- calcGexpCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, mvFit, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
+#' 
+#' @export
 #' 
 calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=FALSE) {
         gexp <- gexp.norm
@@ -427,7 +437,9 @@ calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=F
 #' @param init Initialize recursion (default: FALSE)
 #' @param verbose Verbosity (default: FALSE)
 #' 
-calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:22)), min.traverse=3, t=1e-6, verbose=FALSE) {
+#' @export
+#' 
+calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:22)), min.traverse=3, t=1e-6, min.num.genes=3, verbose=FALSE) {
 
         genes <- genes[rownames(gexp.norm)]
 
@@ -482,12 +494,71 @@ calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:
         })
         boundgenes.pred <- unlist(boundgenes.pred, recursive=FALSE)
         
-        amp.ranges <- range(genes[unlist(lapply(boundgenes.pred, function(x) x[['amp']]))])
-        del.ranges <- range(genes[unlist(lapply(boundgenes.pred, function(x) x[['del']]))])
+        getTbv <- function(boundgenes.pred) {
+          foo <- rep(0, nrow(gexp.norm)); names(foo) <- rownames(gexp.norm)
+          foo[unique(unlist(boundgenes.pred))] <- 1
+          ## vote
+          vote <- rep(0, nrow(gexp.norm))
+          names(vote) <- rownames(gexp.norm)
+          lapply(boundgenes.pred, function(b) {
+            vote[b] <<- vote[b] + 1
+          })
+
+          if(verbose) {
+            cat(paste0('max vote:', max(vote), '\n'))
+          }
+          if(max(vote)==0) {
+            if(verbose) {
+              cat('Exiting; no genes found.\n')
+            }
+            return() ## exit iteration, no more bound genes found
+          }
+          
+          vote[vote > 0] <- 1
+          mv <- 1 ## at least 1 vote
+          cs <- 1
+          bound.genes.cont <- rep(0, length(vote))
+          names(bound.genes.cont) <- names(vote)
+          for(i in 2:length(vote)) {
+            ##if(vote[i] == mv & vote[i] == vote[i-1]) {
+            if(vote[i] >= mv & vote[i] == vote[i-1]) {
+              bound.genes.cont[i] <- cs
+            } else {
+              cs <- cs + 1
+            }
+          }
+          tb <- table(bound.genes.cont)
+          tbv <- as.vector(tb); names(tbv) <- names(tb)
+          tbv <- tbv[-1] # get rid of 0
+          
+          ## all detected deletions have fewer than 5 genes...reached the end
+          tbv[tbv < min.num.genes] <- NA
+          tbv <- na.omit(tbv)
+          if(length(tbv)==0) {
+            if(verbose) {
+              cat(paste0('Exiting; fewer than ', min.num.genes, ' new bound genes found.\n'))
+            }
+            return()
+          }
+          
+          boundgenes.info <- lapply(names(tbv), function(ti) {
+            bound.genes.new <- names(bound.genes.cont)[bound.genes.cont == ti]
+            
+            ## trim
+            bound.genes.new <- bound.genes.new[1:round(length(bound.genes.new)-length(bound.genes.new)*trim)]
+          })
+          boundgenes.region <- do.call("c", lapply(boundgenes.info, function(bs) range(genes[bs])))
+          
+          return(list(info=boundgenes.info, regions=boundgenes.region))
+        }
         
-        return(list(
-          amp = amp.ranges,
-          del = del.ranges
-        ))
+        amp.info <- getTbv(lapply(boundgenes.pred, function(x) x[['amp']]))
+        del.info <- getTbv(lapply(boundgenes.pred, function(x) x[['del']]))
+        
+        if(verbose) {
+          print(paste0("Identified ", length( amp.info$regions ), " potential amplifications"))
+          print(paste0("Identified ", length( del.info$regions ), " potential deletions"))
+        }
+        return(list(amp=amp.info, del=del.info))
         
     }
