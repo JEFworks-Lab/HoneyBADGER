@@ -3,6 +3,11 @@
 \name{HoneyBADGER_plotSmoothedAlleleProfile}
 \alias{HoneyBADGER_plotSmoothedAlleleProfile}
 \title{Plot smoothed allele profile}
+\arguments{
+\item{inheritParams}{HoneyBADGER_plotAlleleProfile}
+
+\item{window.size}{Size of sliding window for smoothing}
+}
 \description{
 Plot smoothed allele profile
 }

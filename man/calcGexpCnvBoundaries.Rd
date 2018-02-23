@@ -5,7 +5,8 @@
 \title{HMM to identify CNV boundaries using normalized gene expression data}
 \usage{
 calcGexpCnvBoundaries(gexp.norm, genes, m = 0.15, chrs = paste0("chr",
-  c(1:22)), min.traverse = 3, t = 1e-06, verbose = FALSE)
+  c(1:22)), min.traverse = 3, t = 1e-06, min.num.genes = 3,
+  verbose = FALSE)
 }
 \arguments{
 \item{gexp.norm}{Normalized gene expression matrix}
@@ -18,9 +19,9 @@ calcGexpCnvBoundaries(gexp.norm, genes, m = 0.15, chrs = paste0("chr",
 
 \item{t}{HMM transition parameter. Higher number, more transitions. (default: 1e-6)}
 
-\item{verbose}{Verbosity (default: FALSE)}
-
 \item{min.num.genes}{Minimum number of genes within a CNV. (default: 3)}
+
+\item{verbose}{Verbosity (default: FALSE)}
 
 \item{init}{Initialize recursion (default: FALSE)}
 }
