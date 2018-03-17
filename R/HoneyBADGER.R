@@ -112,7 +112,9 @@ HoneyBADGER <- setRefClass(
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' 
@@ -200,7 +202,9 @@ HoneyBADGER$methods(
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' hb$plotGexpProfile() 

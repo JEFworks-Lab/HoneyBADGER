@@ -9,6 +9,18 @@ calcAlleleCnvBoundaries(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor,
   trim = 0.1, verbose = FALSE, ...)
 }
 \arguments{
+\item{r.maf}{Matrix of alt allele count in single cells.}
+
+\item{n.sc}{Matrix of site coverage count in single cells.}
+
+\item{l.maf}{Vector of alt allele count in pooled single cells or bulk.}
+
+\item{n.bulk}{Vector of site coverage count in pooled single cells or bulk.}
+
+\item{snps}{SNP annotations}
+
+\item{geneFactor}{Output of \code{\link{setGeneFactors}}}
+
 \item{min.traverse}{Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)}
 
 \item{t}{HMM transition parameter. Higher number, more transitions. (default: 1e-6)}
@@ -24,16 +36,6 @@ calcAlleleCnvBoundaries(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor,
 \item{verbose}{Verbosity(default: FALSE)}
 
 \item{...}{Additional parameters to pass to calcAlleleCnvProb}
-
-\item{r.sub}{Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.}
-
-\item{n.sub}{Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.}
-
-\item{l.sub}{Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.}
-
-\item{n.bulk.sub}{Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.}
-
-\item{init}{Boolean whether to initialize}
 }
 \description{
 Use HMM to identify potential CNV boundaries based on patterns of persistent allelic imbalance
@@ -45,9 +47,11 @@ data(cov.sc)
 allele.mats <- setAlleleMats(r, cov.sc)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
-potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
+potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, 
+    allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
 ## visualize affected regions
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
+plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, 
+    allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
 }
 
 }

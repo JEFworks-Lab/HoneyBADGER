@@ -14,7 +14,7 @@ Imports:
 	caTools,
 	ggplot2,
 	reshape2,
-        gridExtra,
+  gridExtra,
 	rjags,
 	coda,
 	parallel,
@@ -22,6 +22,6 @@ Imports:
 	HiddenMarkov
 RoxygenNote: 6.0.1
 Suggests: 
-        knitr,
-        rmarkdown
+  knitr,
+  rmarkdown
 VignetteBuilder: knitr

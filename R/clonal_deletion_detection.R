@@ -1,5 +1,5 @@
 #' @author Catherine Xue
-#' Functions for assessing clonal deletions
+#' Functions for assessing for clonal deletions
 
 
 #' Helper function to get total allele counts and coverage across all cells at each 

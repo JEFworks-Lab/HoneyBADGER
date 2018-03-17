@@ -7,6 +7,7 @@
 #' @param n.sc.init SNP site coverage count matrix for single cells
 #' @param l.init SNP site alternate allele counts for bulk reference. If NULL, in silico bulk will be created from single cells.
 #' @param n.bulk.init SNP site coverage counts for bulk reference. If NULL, in silico bulk will be created from single cells.
+#' @param filter Whether to filter SNPs to only putative hterozygous SNPs based on the het.deviance.threshold
 #' @param het.deviance.threshold Deviation from expected 0.5 heterozygous fraction 
 #' @param min.cell Minimum number of cells a SNP must have coverage observed in
 #' @param n.cores Number of cores
@@ -162,8 +163,8 @@ setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=
 
 
 #' Maps snps to genes
-#'
-#' @name setGeneFactors
+#' 
+#' @param snps SNP annotations
 #' @param txdb TxDb object (ex. TxDb.Hsapiens.UCSC.hg19.knownGene). 
 #' @param fill SNPs mapping to genes not annotated in txdb will be given unique IDs
 #' @param verbose Verbosity
@@ -198,10 +199,10 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 
 #' Plot allele profile
 #'
-#' @param r.sub SNP lesser allele count matrix for single cells. If NULL, object's r.maf will be used
-#' @param n.sc.sub SNP coverage count matrix for single cells. If NULL, object's n.sc will be used 
-#' @param l.sub SNP lesser allele count matrix for bulk refernece. If NULL, object's l.maf will be used
-#' @param n.bulk.sub SNP coverage count matrix for bulk refernece. If NULL, object's n.bulk will be used
+#' @param r.maf SNP lesser allele count matrix for single cells.
+#' @param n.sc SNP coverage count matrix for single cells.  
+#' @param l.maf SNP lesser allele count matrix for bulk refernece.
+#' @param n.bulk SNP coverage count matrix for bulk refernece. 
 #' @param snps SNP annotations
 #' @param region Limit plotting to particular GenomicRanges regions
 #' @param chrs Limit plotting to select chromosomes. Default autosomes only. (default: paste0('chr', c(1:22))) 
@@ -215,9 +216,16 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 #' data(r)
 #' data(cov.sc)
 #' allele.mats <- setAlleleMats(r, cov.sc)
-#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, 
+#'     allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, 
+#'     widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 
+#'     171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 
+#'     133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 
+#'     78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 #' 
 #' @export
+#' 
+#' @import ggplot2 reshape2 gridExtra stats
 #' 
 plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=paste0('chr', c(1:22)), widths=NULL, cellOrder=NULL, filter=FALSE, max.ps=3, verbose=FALSE) {
         if(!is.null(region)) {
@@ -282,9 +290,6 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
         r.tot <- cbind(r.maf/n.sc, 'Bulk'=l.maf/n.bulk)
         n.tot <- cbind(n.sc, 'Bulk'=n.bulk)
         
-        require(ggplot2)
-        require(reshape2)
-        
         if(is.null(widths)) {
             widths <- rep(1, length(chrs))
         } else if (widths[1]=='set'){
@@ -295,11 +300,11 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
         
         plist <- lapply(chrs, function(chr) {
             vi <- grepl(paste0('^',chr,':'), rownames(r.tot))
-            m <- melt(t(r.tot[vi,]))
+            m <- reshape2::melt(t(r.tot[vi,]))
             colnames(m) <- c('cell', 'snp', 'alt.frac')
             rownames(m) <- paste(m$cell, m$snp)
             m$alt.frac[is.nan(m$alt.frac)] <- NA
-            n <- melt(t(n.tot[vi,]))
+            n <- reshape2::melt(t(n.tot[vi,]))
             colnames(n) <- c('cell', 'snp', 'coverage')
             rownames(n) <- paste(n$cell, n$snp)
             n$coverage[n$coverage>30] <- 30  # max for visualization purposes
@@ -308,27 +313,27 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
             n$coverage[n$coverage==0] <- NA # if no coverage, just don't show
             dat <- cbind(m, coverage=n$coverage)
             
-            p <- ggplot(dat, aes(snp, cell)) +
+            p <- ggplot2::ggplot(dat, ggplot2::aes(snp, cell)) +
                 ## geom_tile(alpha=0) +
-                geom_point(aes(colour = alt.frac, size = coverage), na.rm=TRUE) +
-                scale_size_continuous(range = c(0, max.ps)) +
+                ggplot2::geom_point(ggplot2::aes(colour = alt.frac, size = coverage), na.rm=TRUE) +
+                ggplot2::scale_size_continuous(range = c(0, max.ps)) +
                 ## scale_colour_gradientn(colours = rainbow(10)) +
-                scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
-                theme(
-                    panel.grid.major = element_blank(), 
-                    panel.grid.minor = element_blank(),
-                    panel.background = element_blank(),
-                    axis.text.x=element_blank(),
-                    axis.title.x=element_blank(),
-                    axis.ticks.x=element_blank(),
-                    axis.text.y=element_blank(),
-                    axis.title.y=element_blank(),
-                    axis.ticks.y=element_blank(),
+                ggplot2::scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
+                ggplot2::theme(
+                    panel.grid.major = ggplot2::element_blank(), 
+                    panel.grid.minor = ggplot2::element_blank(),
+                    panel.background = ggplot2::element_blank(),
+                    axis.text.x=ggplot2::element_blank(),
+                    axis.title.x=ggplot2::element_blank(),
+                    axis.ticks.x=ggplot2::element_blank(),
+                    axis.text.y=ggplot2::element_blank(),
+                    axis.title.y=ggplot2::element_blank(),
+                    axis.ticks.y=ggplot2::element_blank(),
                     legend.position="none",
-                    plot.margin=unit(c(0,0,0,0), "cm"),
-                    panel.border = element_rect(fill = NA, linetype = "solid", colour = "black"),
-                    plot.title = element_text(hjust = 0.5)
-                ) + labs(title = chr)
+                    plot.margin=ggplot2::unit(c(0,0,0,0), "cm"),
+                    panel.border = ggplot2::element_rect(fill = NA, linetype = "solid", colour = "black"),
+                    plot.title = ggplot2::element_text(hjust = 0.5)
+                ) + ggplot2::labs(title = chr)
             ## theme(
             ##     ## axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=rel(0.5),lineheight=1),
             ##     ## axis.text.y=element_blank(),
@@ -341,7 +346,6 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
             return(p)
         })
         
-        require(gridExtra)
         do.call("grid.arrange", c(plist, list(ncol=length(plist), widths=widths)))
 
     }
@@ -349,15 +353,16 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
 
 #' Calculate posterior probability of CNVs using allele data
 #'
-#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
-#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
-#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
-#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.  
+#' @param r.maf Matrix of alt allele count in single cells.  
+#' @param n.sc Matrix of site coverage count in single cells.  
+#' @param l.maf Vector of alt allele count in pooled single cells or bulk.
+#' @param n.bulk Vector of site coverage count in pooled single cells or bulk. 
+#' @param snps SNP annotations
+#' @param geneFactor Output of \code{\link{setGeneFactors}}
 #' @param region GenomicRanges region of interest such as expected CNV boundaries. 
 #' @param filter Boolean for whether to filter out SNP sites with no coverage. (default: TRUE)
 #' @param pe Effective error rate to capture error from sequencing, etc. (default: 0.01)
 #' @param mono Rate of mono-allelic expression. (default: 0.7)
-#' @param quiet Boolean of whether to suppress progress bar. (default: TRUE)
 #' @param verbose Verbosity(default: FALSE)
 #' 
 #' @examples 
@@ -367,9 +372,13 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
 #' library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' ## test region known to be commonly deleted in glioblastoma
-#' results <- calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
+#' results <- calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, 
+#'     allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, 
+#'     region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
 #' 
 #' @export
+#' 
+#' @import rjags
 #' 
 calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=NULL, filter=FALSE, pe=0.1, mono=0.7, verbose=FALSE) {
     quiet = !verbose
@@ -479,7 +488,6 @@ calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=
         if(verbose) {
             cat('Running model ... \n')
         }
-        require(rjags)
         # 4 random chains
         model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=100, quiet=quiet)
         update(model, 100, progress.bar=ifelse(quiet,"none","text"))
@@ -500,17 +508,18 @@ calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=
 
 #' Use HMM to identify potential CNV boundaries based on patterns of persistent allelic imbalance
 #' 
-#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
-#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
-#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
-#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.  
+#' @param r.maf Matrix of alt allele count in single cells. 
+#' @param n.sc Matrix of site coverage count in single cells. 
+#' @param l.maf Vector of alt allele count in pooled single cells or bulk.
+#' @param n.bulk Vector of site coverage count in pooled single cells or bulk. 
+#' @param snps SNP annotations
+#' @param geneFactor Output of \code{\link{setGeneFactors}}
 #' @param min.traverse Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)
 #' @param t HMM transition parameter. Higher number, more transitions. (default: 1e-6)
 #' @param pd Probability of lesser allele detection in deleted region (ie. due to error) 
 #' @param pn Probability of lesser allele detection in neutral region (ie. 0.5 - error rate) 
 #' @param min.num.snps Minimum number of snps in candidate CNV
 #' @param trim Trim boundary SNPs
-#' @param init Boolean whether to initialize
 #' @param verbose Verbosity(default: FALSE)
 #' @param ... Additional parameters to pass to calcAlleleCnvProb
 #' 
@@ -520,12 +529,16 @@ calcAlleleCnvProb=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=
 #' allele.mats <- setAlleleMats(r, cov.sc)
 #' library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 #' geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
-#' potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
+#' potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, 
+#'     allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
 #' ## visualize affected regions
-#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
+#' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, 
+#'     allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
 #' }
 #' 
 #' @export
+#' 
+#' @import stats
 #' 
 calcAlleleCnvBoundaries=function(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, min.traverse=3, t=1e-6, pd=0.1, pn=0.45, min.num.snps=5, trim=0.1, verbose=FALSE, ...) {
   

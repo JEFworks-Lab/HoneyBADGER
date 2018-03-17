@@ -9,6 +9,14 @@ plotAlleleProfile(r.maf, n.sc, l.maf, n.bulk, snps, region = NULL,
   filter = FALSE, max.ps = 3, verbose = FALSE)
 }
 \arguments{
+\item{r.maf}{SNP lesser allele count matrix for single cells.}
+
+\item{n.sc}{SNP coverage count matrix for single cells.}
+
+\item{l.maf}{SNP lesser allele count matrix for bulk refernece.}
+
+\item{n.bulk}{SNP coverage count matrix for bulk refernece.}
+
 \item{snps}{SNP annotations}
 
 \item{region}{Limit plotting to particular GenomicRanges regions}
@@ -24,14 +32,6 @@ plotAlleleProfile(r.maf, n.sc, l.maf, n.bulk, snps, region = NULL,
 \item{max.ps}{Maximum point size for plot.}
 
 \item{verbose}{Verbosity}
-
-\item{r.sub}{SNP lesser allele count matrix for single cells. If NULL, object's r.maf will be used}
-
-\item{n.sc.sub}{SNP coverage count matrix for single cells. If NULL, object's n.sc will be used}
-
-\item{l.sub}{SNP lesser allele count matrix for bulk refernece. If NULL, object's l.maf will be used}
-
-\item{n.bulk.sub}{SNP coverage count matrix for bulk refernece. If NULL, object's n.bulk will be used}
 }
 \description{
 Plot allele profile
@@ -40,6 +40,11 @@ Plot allele profile
 data(r)
 data(cov.sc)
 allele.mats <- setAlleleMats(r, cov.sc)
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, 
+    allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, 
+    widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 
+    171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 
+    133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 
+    78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 
 }

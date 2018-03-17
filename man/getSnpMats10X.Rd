@@ -14,6 +14,8 @@ getSnpMats10X(snps, bamFiles, indexFiles, barcodes, n.cores = 1,
 
 \item{indexFiles}{list of bai index file}
 
+\item{barcodes}{Cell barcodes}
+
 \item{n.cores}{number of cores}
 
 \item{verbose}{Boolean of whether or not to print progress and info}

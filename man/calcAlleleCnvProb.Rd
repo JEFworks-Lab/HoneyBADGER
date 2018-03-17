@@ -8,6 +8,18 @@ calcAlleleCnvProb(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region = NULL,
   filter = FALSE, pe = 0.1, mono = 0.7, verbose = FALSE)
 }
 \arguments{
+\item{r.maf}{Matrix of alt allele count in single cells.}
+
+\item{n.sc}{Matrix of site coverage count in single cells.}
+
+\item{l.maf}{Vector of alt allele count in pooled single cells or bulk.}
+
+\item{n.bulk}{Vector of site coverage count in pooled single cells or bulk.}
+
+\item{snps}{SNP annotations}
+
+\item{geneFactor}{Output of \code{\link{setGeneFactors}}}
+
 \item{region}{GenomicRanges region of interest such as expected CNV boundaries.}
 
 \item{filter}{Boolean for whether to filter out SNP sites with no coverage. (default: TRUE)}
@@ -17,16 +29,6 @@ calcAlleleCnvProb(r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region = NULL,
 \item{mono}{Rate of mono-allelic expression. (default: 0.7)}
 
 \item{verbose}{Verbosity(default: FALSE)}
-
-\item{r.sub}{Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.}
-
-\item{n.sub}{Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.}
-
-\item{l.sub}{Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.}
-
-\item{n.bulk.sub}{Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.}
-
-\item{quiet}{Boolean of whether to suppress progress bar. (default: TRUE)}
 }
 \description{
 Calculate posterior probability of CNVs using allele data
@@ -38,6 +40,8 @@ allele.mats <- setAlleleMats(r, cov.sc)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
 ## test region known to be commonly deleted in glioblastoma
-results <- calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
+results <- calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, 
+    allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, 
+    region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
 
 }

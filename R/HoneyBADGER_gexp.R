@@ -18,7 +18,9 @@
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'    dataset = 'hsapiens_gene_ensembl', 
+#'    host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' 
 #' @export
@@ -103,6 +105,7 @@ setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMean
 #' @param gexp.norm Normalized gene expression matrix
 #' @param genes GRanges annotation of gene names and coordinates
 #' @param chrs Chromosomes to be plotted (default: paste0('chr', c(1:22, 'X')))
+#' @param region Optional GenomicRanges region of interest such as expected CNV boundaries. (default: NULL)
 #' @param window.size Window size for sliding window mean. Must be odd number. (default: 101)
 #' @param zlim Limit for plotting heatmap (default: c(-2,2))
 #' @param widths Widths of chromosomes in plot. If 'set' will depend on number of genes in region. Else will be equal.
@@ -112,13 +115,21 @@ setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMean
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' ##Set by known chromosome size widths:
 #' ##https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
-#' gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+#' gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, 
+#'     widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 
+#'     171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 
+#'     133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 
+#'     78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 #' 
 #' @export
+#' 
+#' @import grDevices graphics stats
 #' 
 plotGexpProfile=function(gexp.norm, genes, chrs=paste0('chr', c(1:22)), region=NULL, window.size=101, zlim=c(-2,2), cellOrder=NULL, widths=NULL) {
         genes <- genes[rownames(gexp.norm)]
@@ -211,7 +222,9 @@ plotGexpProfile=function(gexp.norm, genes, chrs=paste0('chr', c(1:22)), region=N
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' mvFit <- setMvFit(gexp.mats$gexp.norm)
 #' 
@@ -239,10 +252,8 @@ setMvFit=function(gexp.norm, num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE
             if(plot) {
                 par(mfrow=c(1,3), mar=rep(2,4))
                 perf.test <- function(mat) {
-                    require(ggplot2)
-                    require(reshape2)
-                    m <- melt(mat)
-                    p <- ggplot(m) + geom_boxplot(aes(x = factor(Var2), y = value))
+                    m <- reshape2::melt(mat)
+                    p <- ggplot2::ggplot(m) + ggplot2::geom_boxplot(ggplot2::aes(x = factor(Var2), y = value))
                     return(p)
                 }
                 perf.test(mean.comp)
@@ -290,7 +301,9 @@ setMvFit=function(gexp.norm, num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' dev <- setGexpDev(gexp.mats$gexp.norm)
 #' 
@@ -333,12 +346,17 @@ setGexpDev=function(gexp.norm, alpha=0.25, n=100, seed=0, plot=FALSE, verbose=FA
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#'     dataset = 'hsapiens_gene_ensembl', 
+#'     host = "jul2015.archive.ensembl.org")
 #' gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #' mvFit <- setMvFit(gexp.mats$gexp.norm)
-#' results <- calcGexpCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, mvFit, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
+#' results <- calcGexpCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, 
+#'     mvFit, region=GenomicRanges::GRanges('chr10', IRanges::IRanges(0,1e9)), verbose=TRUE)
 #' 
 #' @export
+#' 
+#' @import rjags
 #' 
 calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=FALSE) {
         gexp <- gexp.norm
@@ -400,8 +418,7 @@ calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=F
             list(S = rep(0, ncol(gexp)), dd = 1),
             list(S = rep(1, ncol(gexp)), dd = 1)
         )
-        require(rjags)
-        model <- jags.model(modelFile, data=data, inits=inits, n.chains=4, n.adapt=100, quiet=quiet)
+        model <- rjags::jags.model(modelFile, data=data, inits=inits, n.chains=4, n.adapt=100, quiet=quiet)
         update(model, 100, progress.bar=ifelse(quiet,"none","text"))
         
         parameters <- c('S', 'dd')
@@ -430,14 +447,17 @@ calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=F
 #' 
 #' @param gexp.norm Normalized gene expression matrix
 #' @param genes GRanges annotation of gene names and coordinates
+#' @param m Expression magnitude deviation needed to distinguish CNV from neutral
 #' @param chrs List of chromosome names. Genes not mapping to these chromosomes will be excluded. Default autosomes only: paste0('chr', c(1:22))
 #' @param min.traverse Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 2)
 #' @param min.num.genes Minimum number of genes within a CNV. (default: 3)
+#' @param trim Trim boundary SNPs
 #' @param t HMM transition parameter. Higher number, more transitions. (default: 1e-6)
-#' @param init Initialize recursion (default: FALSE)
 #' @param verbose Verbosity (default: FALSE)
 #' 
 #' @export
+#' 
+#' @import stats
 #' 
 calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:22)), min.traverse=3, t=1e-6, min.num.genes=3, trim=0.1, verbose=FALSE) {
 

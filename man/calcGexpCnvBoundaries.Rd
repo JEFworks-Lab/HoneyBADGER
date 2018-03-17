@@ -13,6 +13,8 @@ calcGexpCnvBoundaries(gexp.norm, genes, m = 0.15, chrs = paste0("chr",
 
 \item{genes}{GRanges annotation of gene names and coordinates}
 
+\item{m}{Expression magnitude deviation needed to distinguish CNV from neutral}
+
 \item{chrs}{List of chromosome names. Genes not mapping to these chromosomes will be excluded. Default autosomes only: paste0('chr', c(1:22))}
 
 \item{min.traverse}{Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 2)}
@@ -21,9 +23,9 @@ calcGexpCnvBoundaries(gexp.norm, genes, m = 0.15, chrs = paste0("chr",
 
 \item{min.num.genes}{Minimum number of genes within a CNV. (default: 3)}
 
-\item{verbose}{Verbosity (default: FALSE)}
+\item{trim}{Trim boundary SNPs}
 
-\item{init}{Initialize recursion (default: FALSE)}
+\item{verbose}{Verbosity (default: FALSE)}
 }
 \description{
 HMM to identify CNV boundaries using normalized gene expression data

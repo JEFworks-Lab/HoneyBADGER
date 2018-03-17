@@ -6,7 +6,7 @@
 \usage{
 calcCombCnvProb(gexp.norm, genes, mvFit, m = 0.15, r.maf, n.sc, l.maf, n.bulk,
   snps, geneFactor, region = NULL, filter = FALSE, pe = 0.1, mono = 0.7,
-  n.iter = 1000, quiet = FALSE, verbose = FALSE)
+  verbose = FALSE)
 }
 \arguments{
 \item{gexp.norm}{Normalized gene expression matrix.}
@@ -17,6 +17,18 @@ calcCombCnvProb(gexp.norm, genes, mvFit, m = 0.15, r.maf, n.sc, l.maf, n.bulk,
 
 \item{m}{Expression deviation due to copy number change (default: 0.15)}
 
+\item{r.maf}{Matrix of alt allele count in single cells.}
+
+\item{n.sc}{Matrix of site coverage count in single cells.}
+
+\item{l.maf}{Vector of alt allele count in pooled single cells or bulk.}
+
+\item{n.bulk}{Vector of site coverage count in pooled single cells or bulk.}
+
+\item{snps}{SNP annotations}
+
+\item{geneFactor}{Output of \code{\link{setGeneFactors}}}
+
 \item{region}{Optional GenomicRanges region of interest such as expected CNV boundaries. (default: NULL)}
 
 \item{filter}{Boolean for whether to filter out SNP sites with no coverage. (default: TRUE)}
@@ -24,8 +36,6 @@ calcCombCnvProb(gexp.norm, genes, mvFit, m = 0.15, r.maf, n.sc, l.maf, n.bulk,
 \item{pe}{Effective error rate to capture error from sequencing, etc. (default: 0.01)}
 
 \item{mono}{Rate of mono-allelic expression. (default: 0.7)}
-
-\item{quiet}{Boolean of whether to suppress progress bar. (default: TRUE)}
 
 \item{verbose}{Verbosity (default: FALSE)}
 }

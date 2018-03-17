@@ -7,6 +7,8 @@
 setGeneFactors(snps, txdb, fill = TRUE, verbose = TRUE)
 }
 \arguments{
+\item{snps}{SNP annotations}
+
 \item{txdb}{TxDb object (ex. TxDb.Hsapiens.UCSC.hg19.knownGene).}
 
 \item{fill}{SNPs mapping to genes not annotated in txdb will be given unique IDs}

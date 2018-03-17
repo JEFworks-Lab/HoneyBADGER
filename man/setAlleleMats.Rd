@@ -18,6 +18,8 @@ setAlleleMats(r.init, n.sc.init, l.init = NULL, n.bulk.init = NULL,
 
 \item{n.bulk.init}{SNP site coverage counts for bulk reference. If NULL, in silico bulk will be created from single cells.}
 
+\item{filter}{Whether to filter SNPs to only putative hterozygous SNPs based on the het.deviance.threshold}
+
 \item{het.deviance.threshold}{Deviation from expected 0.5 heterozygous fraction}
 
 \item{min.cell}{Minimum number of cells a SNP must have coverage observed in}

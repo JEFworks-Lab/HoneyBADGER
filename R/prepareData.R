@@ -29,7 +29,7 @@
 #' }
 #'
 #' @export
-#'
+#' 
 getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
   df <- data.frame(seqnames(gr), ranges(gr))
   names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
@@ -94,7 +94,7 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #' }
 #'
 #' @export
-#'
+#' 
 getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = FALSE, n.cores=1) {
   df <- data.frame(seqnames(gr), ranges(gr))
   names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
@@ -310,6 +310,8 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
 #' @param indexFiles list of bai index file
 #' @param n.cores number of cores
 #' @param verbose Boolean of whether or not to print progress and info
+#' @param barcodes Cell barcodes 
+#' 
 #' @return
 #'   refCount reference allele count matrix for each cell and each position of interest
 #'   altCount alternative allele count matrix for each cell and each position of interest

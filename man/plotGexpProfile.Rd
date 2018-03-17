@@ -15,6 +15,8 @@ plotGexpProfile(gexp.norm, genes, chrs = paste0("chr", c(1:22)),
 
 \item{chrs}{Chromosomes to be plotted (default: paste0('chr', c(1:22, 'X')))}
 
+\item{region}{Optional GenomicRanges region of interest such as expected CNV boundaries. (default: NULL)}
+
 \item{window.size}{Window size for sliding window mean. Must be odd number. (default: 101)}
 
 \item{zlim}{Limit for plotting heatmap (default: c(-2,2))}
@@ -30,10 +32,16 @@ Plot gene expression profile
 data(gexp)
 data(ref)
 require(biomaRt) ## for gene coordinates
-mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+    dataset = 'hsapiens_gene_ensembl', 
+    host = "jul2015.archive.ensembl.org")
 gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 ##Set by known chromosome size widths:
 ##https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
-gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, 
+    widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 
+    171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 
+    133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 
+    78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 
 }

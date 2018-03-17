@@ -5,13 +5,15 @@
 #' 
 #' @export
 #' 
-calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE, verbose=FALSE) {
+calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.bulk, snps, geneFactor, region=NULL, filter=FALSE, pe=0.1, mono=0.7, verbose=FALSE) {
   
-    geneFactor <- geneFactor[rownames(r.maf)]
-    snps <- snps[rownames(r.maf),]
+  quiet <- !verbose
   
-    genes <- genes[rownames(gexp.norm)]
-    mvFit <- mvFit[colnames(gexp.norm)]
+  geneFactor <- geneFactor[rownames(r.maf)]
+  snps <- snps[rownames(r.maf),]
+  
+  genes <- genes[rownames(gexp.norm)]
+  mvFit <- mvFit[colnames(gexp.norm)]
              
   gexp <- gexp.norm
   gos <- genes

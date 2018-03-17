@@ -27,7 +27,9 @@ Set needed absolute gene expression deviance to be able to distinguish neutral f
 data(gexp)
 data(ref)
 require(biomaRt) ## for gene coordinates
-mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+    dataset = 'hsapiens_gene_ensembl', 
+    host = "jul2015.archive.ensembl.org")
 gexp.mats <- setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 dev <- setGexpDev(gexp.mats$gexp.norm)
 
