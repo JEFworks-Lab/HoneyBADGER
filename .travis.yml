@@ -24,6 +24,10 @@ r_check_args: --no-build-vignettes --no-manual --timings
 r_github_packages:
   - JEFworks/HoneyBADGER
 
+# for codecov
+r_packages:
+  - covr
+
 # install jags
 before_install:
   - sudo apt-get install jags

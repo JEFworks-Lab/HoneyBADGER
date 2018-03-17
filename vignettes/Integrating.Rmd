@@ -3,10 +3,8 @@ title: "Integrative Analysis with HoneyBADGER"
 author: "Jean Fan"
 date: '`r Sys.Date()`'
 output:
-  pdf_document: default
-  html_document: default
-md_document:
-  variant: markdown_github
+  md_document:
+    variant: markdown_github
 vignette: |
   %\VignetteIndexEntry{Vignette Title} %\VignetteEngine{knitr::rmarkdown} \usepackage[utf8]{inputenc}
 ---
@@ -16,7 +14,6 @@ To accomodate user/developer preferences, `HoneyBADGER` can be used with or with
 We will use `HoneyBADGER` to detect CNVs in glioblastoma tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). 
 
 ```{r}
-#devtools::install_github('JEFworks/HoneyBADGER')
 library(HoneyBADGER)
 ```
 
@@ -40,15 +37,15 @@ Let's visually inspect for patterns of allelic imbalance using a lesser-allele-f
 
 ```{r}
 ## set widths to known chromosome sizes from UCSC
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, snps=allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 ```
 
 Now let's use an HMM to identify potential CNV regions. 
 
 ```{r}
-potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor)
+potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, snps=allele.mats$snps, geneFactor)
 ## visualize affected regions, set width to correspond to number of snps in affected region
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region, widths='set')
+plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
 ```
 
 Having identified potential CNV boundaries, we can then apply our Bayesian hierarchical model to more robustly derive the posterior probability of an individual cell harboring each of these CNVs.
@@ -147,9 +144,9 @@ dev <- setGexpDev(gexp.mats$gexp.norm)
 potentialCnvs.new <- calcGexpCnvBoundaries(gexp.mats$gexp.norm, gexp.mats$genes, m=dev)
 ```
 
-Now, we have both CNVs identified by the allele and expression-based HMM. We can test them all with a combined Bayesian hierarchical model that leverages both allele and expression information to enhance sensitivity and power. 
+Now, we have both CNVs identified by the allele and expression-based HMM. We can also test them all with a combined Bayesian hierarchical model that leverages both allele and expression information to enhance sensitivity and power. 
 
-```{r}
+```{r, eval=FALSE}
 ## combine with allele-HMM regions
 amp.regions <- potentialCnvs.new$amp$regions
 del.regions <- range(c(potentialCnvs.new$del$regions, potentialCnvs$regions)) 

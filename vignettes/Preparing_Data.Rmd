@@ -3,9 +3,8 @@ title: "Preparing Data"
 author: "Jean Fan"
 date: '`r Sys.Date()`'
 output:
-  pdf_document: default
-md_document:
-  variant: markdown_github
+  md_document:
+    variant: markdown_github
 vignette: |
   %\VignetteIndexEntry{Vignette Title} %\VignetteEngine{knitr::rmarkdown} \usepackage[utf8]{inputenc}
 ---
@@ -25,58 +24,72 @@ opts_chunk$set(
 )
 ```
 
+`HoneyBADGER` enables detection of megabase-level copy number alterations such as deletions, amplifications, and copy-neutral loss-of-heterozygosity in single cells from single-cell RNA-seq data. `HoneyBADGER` relies on allele-information and gene-expression information derived from single-cell RNA-seq data. In this tutorial, we walk you through how to prepare your dataset for `HoneyBADGER`.
 
-## Allele Data
+```{r}
+library(HoneyBADGER)
+```
 
-For the allele-based model, you will need a set of heterozygous SNP positions. This can be ideally obtained from previous WES data from the same sample or estimated from the [ExAC database](http://exac.broadinstitute.org/).
+# Preparing allele data
 
-Example using your own VCF file:
+`HoneyBADGER` provides an HMM-integrated Bayesian hierarchical allele-based model to identify and infer the probability of copy number alterations in each single cell on the basis of persistent allelic imbalance. 
+
+To run the allele-based model, you will need matrices of heterozygous SNP counts. Specifically, we will need the counts of the reference allele, alternate allele, and total coverage for each SNP in each cell. Functions within the `HoneyBADGER` package `getSnpMats`, `getAlleleCount`, and `getCellAlleleCount` will help you create these matrices given a list of indexed bams where each cell corresponds to one bam (common for single-cell datasets generated from plate-based approaches), or a single bam with multiple cell barcodes (common for droplet-based single-cell datasets).
+
+Heterozygous SNP positions will also need to be provided. These will ideally obtained from previous WES data from the same sample. When WES data from the same sample is not available, common heterozygous SNPs can be derived from databses such as [ExAC database](http://exac.broadinstitute.org/).
+
+In this example, we will create a list of heterozygous SNPs as GRanges from a VCF file:
 
 ```{r, eval=FALSE}
-## Use your own vcf file with heterozygous variants
+# Use your own vcf file with heterozygous variants
 vcfFile <- "hets.vcf.gz"
-## For testing purposes, restrict to set of SNPs on region on chromosome 1
+# For testing purposes, restrict to set of SNPs on region on chromosome 1
 require(GenomicRanges)
 testRanges <- GRanges('1', IRanges(start=1e5, width=1e6))
 require(VariantAnnotation)
 param <- ScanVcfParam(which=testRanges)
+# Be sure to use the correct genome species/version
 vcf <- readVcf(vcfFile, "hg19", param=param)
-## limit to common snps by MAF
+
+snps <- rowData(vcf)
+# AF is the allele frequency for each alternate allele
 info <- info(vcf)
-maf <- info[, 'AF'] # AF is Integer allele frequency for each Alt allele
+maf <- info[, 'AF'] 
+# limit to common snps by MAF (ie. > 10% in population)
 maft <- 0.1
 vi <- sapply(maf, function(x) any(x > maft))
-print(table(vi))
-snps <- rowData(vcf)
 snps <- snps[vi,]
-## get rid of non single nucleotide changes
+# get rid of non single nucleotide changes
 vi <- width(snps@elementMetadata$REF) == 1
 snps <- snps[vi,]
-## look at final SNPs
-print(snps)
 ```
 
-Example using ExAC:
+This process has already been done for common heterozygous SNPs from ExAC (hg19) and can be loaded directly from `HoneyBADGER`:
+
 ```{r}
-## available for all autosomes (Chr1 to Chr22)
+# available for all autosomes (Chr1 to Chr22) for hg19 only
 load(system.file("ExAC", "ExAC_chr1.RData", package = "HoneyBADGER"))
 print(head(snps))
 ```
 
-Now we can get the number of reads corresponding to each SNP site for each cell using their `.bam` files. Here, we have placed all `.bam` and corresponding `.bai` index files in the `data-raw/` folder. There is one `.bam` and `.bai` for each cell. 
+Now, given this list of potential heterozygous SNPs, we can get the number of reads corresponding to each SNP site for each cell using their `.bam` files. Here, we have placed all `.bam` and corresponding `.bai` index files in the `data-raw/` folder. There is one `.bam` and `.bai` for each cell. 
 
 ```{r, eval=FALSE}
 library(HoneyBADGER)
+
 path <- "data-raw/"
 files <- list.files(path = path)
+# list of paths to bam files
 bamFiles <- files[grepl('.bam$', files)]
-bamFiles <- paste0(path, bamFiles) ## list of paths to bam files
+bamFiles <- paste0(path, bamFiles) 
+# list of paths to index files
 indexFiles <- files[grepl('.bai$', files)] 
-indexFiles <- paste0(path, indexFiles) ## list of paths to index files
+indexFiles <- paste0(path, indexFiles) 
+
 results <- getSnpMats(snps, bamFiles, indexFiles)
 ```
 
-Now we have a matrix of SNP coverage as well as reference and allele count for use in our `HoneyBADGER` allele model. 
+`getSnpMats` creates a matrix of SNP coverage as well as reference and allele count for use in our `HoneyBADGER` allele model. 
 
 ```{r, eval=FALSE}
 ref <- results$refCount
@@ -84,11 +97,13 @@ alt <- results$altCount
 cov <- results$cov
 ```
 
-## Gene expression data
+# Preparing gene expression data
 
-For gene expression data, we recommend quantification by counts transformed to log CPM. The same processing pipeline and transformation is highly recommended for the normal reference. Normal references can be ideally obtained from matched normal but can also be estimated using [GTeX](https://www.gtexportal.org/home/). 
+`HoneyBADGER` provides an HMM-integrated Bayesian hierarchical expression-based model to identify and infer the probability of copy number alterations in each single cell on the basis of persistent deviations in gene expression from a normal expression reference. Normal references can be ideally obtained from matched normal cells or sorted samples from the same patient but can also be estimated using [GTeX](https://www.gtexportal.org/home/). 
 
-## Accomodating 10X Data
+To run the expression-based model, we recommend quantification by counts transformed to log CPM. The same processing pipeline and transformation is highly recommended for the normal reference. 
+
+# Accomodating 10X Data
 
 For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformmed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.  
 

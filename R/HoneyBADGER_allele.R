@@ -209,6 +209,7 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 #' @param cellOrder Order of cells. If 'set' will be automatically ordered by clustering. Else will be same order as input.
 #' @param filter Remove sites with no coverage
 #' @param max.ps Maximum point size for plot. 
+#' @param verbose Verbosity
 #' 
 #' @examples 
 #' data(r)
@@ -216,7 +217,9 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
 #' allele.mats <- setAlleleMats(r, cov.sc)
 #' plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
 #' 
-plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=paste0('chr', c(1:22)), widths=NULL, cellOrder=NULL, filter=FALSE, max.ps=3) {
+#' @export
+#' 
+plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=paste0('chr', c(1:22)), widths=NULL, cellOrder=NULL, filter=FALSE, max.ps=3, verbose=FALSE) {
         if(!is.null(region)) {
             overlap <- IRanges::findOverlaps(region, snps)
             ## which of the ranges did the position hit
@@ -247,9 +250,8 @@ plotAlleleProfile=function(r.maf, n.sc, l.maf, n.bulk, snps, region=NULL, chrs=p
         
         mat <- r.maf/n.sc
         ## organize into chromosomes
-        gos <- as.data.frame(snps)
-        tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
-            mat[rownames(gos)[ii[order(gos[ii,]$start,decreasing=F)]],,drop=FALSE]
+        tl <- tapply(seq_along(snps), as.factor(as.character(snps@seqnames)),function(ii) {
+            mat[names(snps)[ii[order(snps@ranges@start[ii],decreasing=F)]],,drop=FALSE]
         })
         ## only care about these chromosomes
         tl <- tl[chrs]

@@ -439,7 +439,7 @@ calcGexpCnvProb=function(gexp.norm, genes, mvFit, m=0.15, region=NULL, verbose=F
 #' 
 #' @export
 #' 
-calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:22)), min.traverse=3, t=1e-6, min.num.genes=3, verbose=FALSE) {
+calcGexpCnvBoundaries=function(gexp.norm, genes, m=0.15, chrs=paste0('chr', c(1:22)), min.traverse=3, t=1e-6, min.num.genes=3, trim=0.1, verbose=FALSE) {
 
         genes <- genes[rownames(gexp.norm)]
 

@@ -770,8 +770,8 @@ HoneyBADGER$methods(
 #' Plot smoothed allele profile
 #'
 #' @name HoneyBADGER_plotSmoothedAlleleProfile
-#' @inheritParams HoneyBADGER_plotAlleleProfile
-#' @window.size Size of sliding window for smoothing
+#' @param inheritParams HoneyBADGER_plotAlleleProfile
+#' @param window.size Size of sliding window for smoothing
 #'
 HoneyBADGER$methods(
   plotSmoothedAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, setOrder=FALSE, cellOrder=NULL, filter=FALSE, returnPlot=FALSE, window.size=51) {

@@ -6,7 +6,7 @@
 \usage{
 plotAlleleProfile(r.maf, n.sc, l.maf, n.bulk, snps, region = NULL,
   chrs = paste0("chr", c(1:22)), widths = NULL, cellOrder = NULL,
-  filter = FALSE, max.ps = 3)
+  filter = FALSE, max.ps = 3, verbose = FALSE)
 }
 \arguments{
 \item{snps}{SNP annotations}
@@ -22,6 +22,8 @@ plotAlleleProfile(r.maf, n.sc, l.maf, n.bulk, snps, region = NULL,
 \item{filter}{Remove sites with no coverage}
 
 \item{max.ps}{Maximum point size for plot.}
+
+\item{verbose}{Verbosity}
 
 \item{r.sub}{SNP lesser allele count matrix for single cells. If NULL, object's r.maf will be used}
 

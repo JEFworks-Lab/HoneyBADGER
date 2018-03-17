@@ -5,7 +5,7 @@
 \title{HMM to identify CNV boundaries using normalized gene expression data}
 \usage{
 calcGexpCnvBoundaries(gexp.norm, genes, m = 0.15, chrs = paste0("chr",
-  c(1:22)), min.traverse = 3, t = 1e-06, min.num.genes = 3,
+  c(1:22)), min.traverse = 3, t = 1e-06, min.num.genes = 3, trim = 0.1,
   verbose = FALSE)
 }
 \arguments{
