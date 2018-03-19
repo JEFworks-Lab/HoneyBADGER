@@ -34,7 +34,7 @@ require(devtools)
 devtools::install_github('JEFworks/HoneyBADGER')
 ```
 
-`HoneyBADGER` uses [`JAGS` (Just Another Gibbs Sampler)](http://mcmc-jags.sourceforge.net/) through `rjags`. Therefore, `JAGS` must be installed per your operating system requirements. Please see this [R-bloggers tutorial](https://www.r-bloggers.com/getting-started-with-jags-rjags-and-bayesian-modelling/) for additional tips for installed `JAGS` and `rjags`.
+`HoneyBADGER` uses [`JAGS` (Just Another Gibbs Sampler)](http://mcmc-jags.sourceforge.net/) through `rjags`. Therefore, `JAGS` must be installed per your operating system requirements. Please see this [R-bloggers tutorial](https://www.r-bloggers.com/getting-started-with-jags-rjags-and-bayesian-modelling/) for additional tips for installing `JAGS` and `rjags`.
 
 Additional dependencies may need to be installed from [`Biocondcutor`](https://www.bioconductor.org/install/) such as `GenomicRanges` and others:
 ```
@@ -47,8 +47,8 @@ biocLite("GenomicRanges")
 
 ## Tutorials
 - [Preparing data](Preparing_Data.md)
-- [Getting Started](Getting_Started.md)
-- Integration with `scde` and `liger`
+- [Getting started](Getting_Started.md)
+- [Integrating with other analyses](Integrating.md)
 
 ---
 

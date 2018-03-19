@@ -6,7 +6,7 @@ Date: 2017-2-27
 Author: Jean Fan [aut, cre]
 Maintainer: Jean Fan <jeanfan@fas.harvard.edu>
 Description: The HoneyBADGER package implements a set of statistical methods for detecting copy number variation and loss of heterozygosity events using single-cell RNA-seq data.
-License: GPL-2
+License: GPL-3
 LazyData: TRUE
 Imports:
 	GenomicRanges,

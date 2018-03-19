@@ -84,7 +84,7 @@ The inputted gene expression matrix is normalized using the reference such that 
 hb$plotGexpProfile() ## initial visualization
 ```
 
-![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png)
+![plot of chunk unnamed-chunk-8](figure/Getting_Started/unnamed-chunk-8-1.png)
 
 Here, each row is a single cell. Genes are organized based on their position along each chromosome. Expression has been smoothed using a sliding window approach. Red indicates higher average expression compared to the reference and blue indicates lower. Visually, such expression-based karyotyping already suggests some chromosomal abnormalities. To provide a more quantitative assessment, we can model the gene expression variance and use an iterative HMM approach to identify regions affected by CNVs.
 
@@ -167,7 +167,7 @@ print(head(results[,1:5]))
 trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
 ```
 
-![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10-1.png)
+![plot of chunk unnamed-chunk-10](figure/Getting_Started/unnamed-chunk-10-1.png)
 
 We can again visualize our results, this time, ordering the cells based on their posterior probabilities of harboring CNVs. 
 
@@ -180,20 +180,20 @@ order <- hc$labels[hc$order]
 hb$plotGexpProfile(cellOrder=order)
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png)
+![plot of chunk unnamed-chunk-11](figure/Getting_Started/unnamed-chunk-11-1.png)
 
 ```r
 ## plot just identified cnvs
 hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']][['amp']])
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-2.png)
+![plot of chunk unnamed-chunk-11](figure/Getting_Started/unnamed-chunk-11-2.png)
 
 ```r
 hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']][['del']])
 ```
 
-![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-3.png)
+![plot of chunk unnamed-chunk-11](figure/Getting_Started/unnamed-chunk-11-3.png)
 
 We thus confidently identify amplifications on Chr 5, 7, 20 and deletions on Chr 10, 13, and 14 affecting a subset of cells. 
 
@@ -251,7 +251,7 @@ We can visualize the allelic patterns using the following lesser allele fraction
 hb$plotAlleleProfile() ## visualize individual SNPs
 ```
 
-![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14-1.png)
+![plot of chunk unnamed-chunk-14](figure/Getting_Started/unnamed-chunk-14-1.png)
 
 ```r
 #hb$plotSmoothedAlleleProfile() ## smoothed option for high density data
@@ -321,7 +321,7 @@ print(head(results[,1:5]))
 trees2 <- hb$visualizeResults(geneBased=FALSE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
 ```
 
-![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16-1.png)
+![plot of chunk unnamed-chunk-16](figure/Getting_Started/unnamed-chunk-16-1.png)
 
 We can again visualize our results, this time, ordering the cells based on our previously identified cell ordering for comparison. 
 
@@ -335,27 +335,27 @@ order2 <- hc2$labels[hc2$order]
 hb$plotAlleleProfile(cellOrder=order) ## order cells by same order as previously
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-1.png)
+![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-1.png)
 
 ```r
 ## plot just identified cnvs
 hb$plotAlleleProfile(cellOrder=order, region=hb$cnvs[['allele-based']][['del.loh']])
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-2.png)
+![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-2.png)
 
 ```r
 ## compare to new order
 hb$plotAlleleProfile(cellOrder=order2) 
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-3.png)
+![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-3.png)
 
 ```r
 hb$plotGexpProfile(cellOrder=order2) 
 ```
 
-![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-4.png)
+![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-4.png)
 
 Thus, we confirm the deletion on Chr 10, 13, and 14 in agreement with our expression-based approach. While an allele-based approach is not able to identify amplifications like an expression-based approach, we are generally able to have improved resolution for identifying smaller deletions such as the one on Chr 19. 
 
