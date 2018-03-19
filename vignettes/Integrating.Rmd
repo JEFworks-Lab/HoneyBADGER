@@ -11,7 +11,7 @@ vignette: |
 
 To accomodate user/developer preferences, `HoneyBADGER` can be used with or without the `HoneyBADGER` object. In this tutorial, we will go through an analysis without the `HoneyBADGER` object, which lends itself to potentially easier downstream integration with other analysis pipelines.
 
-We will use `HoneyBADGER` to detect CNVs in glioblastoma tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). 
+In this tutorial, we will use `HoneyBADGER` to detect CNVs in glioblastoma cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). We will then characterize the transcriptional differences between detected genetic subclones using differential expression and gene set enrichment analyses as examples of potential integrative analyses enabled by `HoneyBADGER`. 
 
 ```{r}
 library(HoneyBADGER)
@@ -30,29 +30,57 @@ allele.mats <- setAlleleMats(r, cov.sc)
 
 ## map snps to genes
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-geneFactor <- setGeneFactors(allele.mats$snps, TxDb.Hsapiens.UCSC.hg19.knownGene)
+geneFactor <- setGeneFactors(allele.mats$snps, 
+                             TxDb.Hsapiens.UCSC.hg19.knownGene)
 ```
 
 Let's visually inspect for patterns of allelic imbalance using a lesser-allele-frequency (LAF) profile.
 
 ```{r}
 ## set widths to known chromosome sizes from UCSC
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, snps=allele.mats$snps, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7) 
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  widths=c(249250621, 243199373, 198022430, 191154276, 
+                           180915260, 171115067, 159138663, 146364022, 
+                           141213431, 135534747, 135006516, 133851895, 
+                           115169878, 107349540, 102531392, 90354753, 
+                           81195210, 78077248, 59128983, 63025520, 
+                           51304566, 48129895)/1e7) 
 ```
 
 Now let's use an HMM to identify potential CNV regions. 
 
 ```{r}
-potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, snps=allele.mats$snps, geneFactor)
+potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, 
+                                         allele.mats$n.sc, 
+                                         allele.mats$l.maf, 
+                                         allele.mats$n.bulk, 
+                                         allele.mats$snps, 
+                                         geneFactor)
 ## visualize affected regions, set width to correspond to number of snps in affected region
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, region=potentialCnvs$region)
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  region=potentialCnvs$region)
 ```
 
 Having identified potential CNV boundaries, we can then apply our Bayesian hierarchical model to more robustly derive the posterior probability of an individual cell harboring each of these CNVs.
 
 ```{r}
 results <- do.call(rbind, lapply(potentialCnvs$region, function(region) {
-  calcAlleleCnvProb(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, region=region, verbose=FALSE)
+  calcAlleleCnvProb(allele.mats$r.maf, 
+                    allele.mats$n.sc, 
+                    allele.mats$l.maf, 
+                    allele.mats$n.bulk, 
+                    allele.mats$snps, 
+                    geneFactor, 
+                    region=region, 
+                    verbose=FALSE)
 }))
 ```
 
@@ -61,26 +89,39 @@ Based on these posterior probabilities, we can split cells into putative normal 
 ```{r}
 ## filter out CNVs with low posteriors
 vi <- rowSums(results>0.9) > 0.1*ncol(results)
-table(vi)
 results.filtered <- results[vi,]
 regions.filtered <- potentialCnvs$region[vi]
 
 ## cluster cells on posterior probability
 hc <- hclust(dist(t(results.filtered)), method='ward.D')
 ## visualize as heatmap
-heatmap(t(results.filtered), Rowv=as.dendrogram(hc), scale="none", col=colorRampPalette(c('beige', 'grey', 'black'))(100))
+heatmap(t(results.filtered), 
+        Rowv=as.dendrogram(hc), 
+        scale="none", 
+        col=colorRampPalette(c('beige', 'grey', 'black'))(100))
 
 ## visualize all chromosomes using derived cell ordering
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, cellOrder = hc$labels[hc$order])
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  cellOrder = hc$labels[hc$order])
 ## visualize just detected CNVs
-plotAlleleProfile(allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, cellOrder = hc$labels[hc$order], region=regions.filtered) 
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  cellOrder = hc$labels[hc$order], 
+                  region=regions.filtered) 
 ```
 
 Based on these posterior probabilities of harboring CNVs, let's identify the putative normal cells as those without any of the identified CNVs.
 
 ```{r}
 cell.annot <- factor(cutree(hc, 2), labels=c("tumor", "normal"))
-table(cell.annot)
+print(table(cell.annot))
 ```
 
 Let's see how these tumor vs. normal annotations compare to when we cluster the data based on single-cell RNA-seq. The single-cell RNA-seq data has been prepared for you and is included in the `HoneyBADGER` package. First, load the gene expression matrices for the same set of cells.
@@ -90,33 +131,89 @@ data(gexp)
 gexp <- gexp[, names(cell.annot)] ## restrict to same set of cells
 ```
 
-We will using the `MUDAN` package to perform dimensionality reduction and use tSNE to generate a 2D embedding.
+We will perform dimensionality reduction and use tSNE to generate a 2D embedding.
 
 ```{r}
-library(MUDAN)
-
-## 30 PCs on overdispersed genes
-pcs <- getPcs(gexp, 
-              nGenes=1000, 
-              nPcs=30, 
-              verbose=FALSE) 
+## 30 PCs 
+pcs <- prcomp(t(gexp))$x[,1:30] 
+d <- dist(pcs, method='man')
 ## get tSNE embedding on PCs
-emb <- Rtsne::Rtsne(pcs, 
-                    is_distance=FALSE, 
+emb <- Rtsne::Rtsne(d, 
+                    is_distance=TRUE, 
                     perplexity=10, 
                     num_threads=parallel::detectCores(), 
                     verbose=FALSE)$Y 
 rownames(emb) <- rownames(pcs)
 ## plot
-plotEmbedding(emb, groups=cell.annot, xlab='tSNE 1', ylab='tSNE 2', mark.clusters=TRUE)
+library(MUDAN)
+plotEmbedding(emb, groups=cell.annot, xlab='tSNE 1', ylab='tSNE 2')
 ```
 
-Indeed, the putative normal cells and tumor cells separate transcriptionally. Looking at marker genes, we can begin characterizing them.
+Indeed, the putative normal cells and tumor cells separate transcriptionally. We can perform differential expression analysis to see just what genes these cells differentially up and downregulate. We will leave as an exercise to the user to map these differentially expressed genes to their genomic coordinates and then assess whether these coordinates are within regions affected by identified CNVs. 
 
 ```{r}
-g <- 'CD59'
-gcol <- gexp[g,]
-plotEmbedding(emb, colors = gcol, xlab='tSNE 1', ylab='tSNE 2', main=g, zlim=c(-2,2))
+## differential expression analysis by simple t-test
+pv <- do.call(rbind, lapply(rownames(gexp), function(g) {
+  tr <- t.test(gexp[g, cell.annot=='normal'], 
+         gexp[g, cell.annot=='tumor'])
+  return(c(p.value=tr$p.value, statistic=tr$statistic, tr$estimate))
+}))
+rownames(pv) <- rownames(gexp)
+pv[, 'p.value'] <- p.adjust(pv[, 'p.value'], method="bonferroni", nrow(pv))
+pv <- pv[order(pv[, 'p.value'], decreasing=FALSE), ]
+print(head(pv))
+
+library(MUDAN)
+## visualize a top gene upregulated in normal cells
+par(mfrow=c(1,2))
+g <- rownames(pv[pv[, 'statistic.t']>0,])[1]
+gcol <- scale(gexp[g,])[,1]
+plotEmbedding(emb, color=gcol, xlab='tSNE 1', ylab='tSNE 2', main=g)
+## visualize a top gene upregulated in tumor cells
+g <- rownames(pv[pv[, 'statistic.t']<0,])[1]
+gcol <- scale(gexp[g,])[,1]
+plotEmbedding(emb, color=gcol, xlab='tSNE 1', ylab='tSNE 2', main=g)
+```
+
+We can even perform gene set enrichment analysis to then characterize what pathways are impacted by these differentially up and downregulated genes. Of course, this analysis would be more interesting in the context of genetically distinct tumor subclones, but we will use our normal and tumor cells here for demonstrative purposes. 
+
+```{r}
+## perform gene set enrichment analysis
+library(liger)
+data(org.Hs.GO2Symbol.list) ## load built in GO gene sets
+go.env <- org.Hs.GO2Symbol.list
+
+## annotate GO terms with names
+library(GO.db)
+library(AnnotationDbi)
+desc <- AnnotationDbi::select(
+      GO.db,
+      keys = names(go.env),
+      columns = c("TERM"),
+      multiVals = 'CharacterList'
+)
+names(go.env) <- paste(names(go.env), desc$TERM)
+
+## use t-values from differential test as rank statistic
+vals <- sort(pv[, 'statistic.t'])
+gsea.results <- iterative.bulk.gsea(values=vals, set.list=go.env, rank=TRUE)
+gsea.sig.up <- gsea.results[gsea.results$q.val < 0.05 & gsea.results$sscore > 0 & gsea.results$edge > 0,]
+gsea.sig.down <- gsea.results[gsea.results$q.val < 0.05 & gsea.results$sscore < 0 & gsea.results$edge < 0,]
+
+## visualize top hits
+print(rownames(gsea.sig.up)[1])
+gsea(values=vals, geneset=go.env[[rownames(gsea.sig.up)[1]]], plot=TRUE, rank=TRUE)
+print(rownames(gsea.sig.down)[1])
+gsea(values=vals, geneset=go.env[[rownames(gsea.sig.down)[1]]], plot=TRUE, rank=TRUE)
+```
+
+Alternatively, we can define transcriptional clusters and assess how well these transcriptional clusters overlap with our genetic subclones. In this case, of course, we get a near perfect correspondence with one of the identified clusters. 
+
+```{r}
+library(MUDAN)
+com <- getComMembership(pcs, k=5, method=igraph::cluster_walktrap)
+plotEmbedding(emb, groups=com, xlab='tSNE 1', ylab='tSNE 2', main='Louvain Community Detection')
+print(table(com, cell.annot))
 ```
 
 Now that we've identified these putative normal cells, let's use them as an internal normal gene expression reference to identify more CNVs such as amplifications using our expression-based karyotyping.
@@ -134,7 +231,16 @@ Let's visually inspect for patterns by plotting a sliding window normalized gene
 ```{r}
 ## set widths to known chromosome sizes from UCSC
 ## order cells by previous order derived from allele-based approach
-gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, gexp.mats$genes, widths=c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)/1e7, cellOrder=hc$labels[hc$order]) 
+gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, 
+                             gexp.mats$genes, 
+                             widths=c(249250621, 243199373, 198022430, 
+                                      191154276, 180915260, 171115067,
+                                      159138663, 146364022, 141213431, 
+                                      135534747, 135006516, 133851895, 
+                                      115169878, 107349540, 102531392, 
+                                      90354753, 81195210, 78077248, 
+                                      59128983, 63025520, 51304566, 
+                                      48129895)/1e7, cellOrder=hc$labels[hc$order]) 
 ```
 
 Let's use our expression-based HMM to identify potential CNVs.
@@ -147,16 +253,62 @@ potentialCnvs.new <- calcGexpCnvBoundaries(gexp.mats$gexp.norm, gexp.mats$genes,
 Now, we have both CNVs identified by the allele and expression-based HMM. We can also test them all with a combined Bayesian hierarchical model that leverages both allele and expression information to enhance sensitivity and power. 
 
 ```{r, eval=FALSE}
-## combine with allele-HMM regions
 amp.regions <- potentialCnvs.new$amp$regions
-del.regions <- range(c(potentialCnvs.new$del$regions, potentialCnvs$regions)) 
-all.regions <- c(amp.regions, del.regions)
 
 mvFit <- setMvFit(gexp.mats$gexp.norm)
-comb.results <- do.call(rbind, lapply(all.regions, function(region) {
-  calcCombCnvProb(gexp.mats$gexp.norm, gexp.mats$genes, mvFit, m=dev, allele.mats$r.maf, allele.mats$n.sc, allele.mats$l.maf, allele.mats$n.bulk, allele.mats$snps, geneFactor, region=region) 
-  }))
+comb.amp.results <- do.call(rbind, lapply(amp.regions, function(region) {
+  calcCombCnvProb(gexp.norm=gexp.mats$gexp.norm, 
+                  genes=gexp.mats$genes, 
+                  mvFit=mvFit,
+                  m=dev, 
+                  r.maf=allele.mats$r.maf, 
+                  n.sc=allele.mats$n.sc, 
+                  l.maf=allele.mats$l.maf, 
+                  n.bulk=allele.mats$n.bulk, 
+                  snps=allele.mats$snps, 
+                  geneFactor=geneFactor, 
+                  region=region,
+                  verbose=FALSE)[[1]] # amplification prob
+}))
 ```
 
 
+```{r}
+## filter out CNVs with low posteriors
+vi <- rowSums(comb.amp.results>0.9) > 0.1*ncol(comb.amp.results)
+comb.amp.results.filtered <- comb.amp.results[vi,]
+comb.amp.regions.filtered <- amp.regions[vi]
+
+# combine with old regions
+comb.results.filtered <- rbind(comb.amp.results.filtered, results.filtered)
+## cluster cells on posterior probability
+comb.hc <- hclust(dist(t(comb.results.filtered)), method='ward.D')
+## visualize as heatmap
+heatmap(t(comb.results.filtered), 
+        Rowv=as.dendrogram(comb.hc), 
+        scale="none", 
+        col=colorRampPalette(c('beige', 'grey', 'black'))(100))
+
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  cellOrder = comb.hc$labels[comb.hc$order])
+plotGexpProfile(gexp.mats$gexp.norm, 
+                  gexp.mats$genes, 
+                  cellOrder = comb.hc$labels[comb.hc$order])
+## visualize newly detected amplifications
+plotAlleleProfile(allele.mats$r.maf, 
+                  allele.mats$n.sc, 
+                  allele.mats$l.maf, 
+                  allele.mats$n.bulk, 
+                  allele.mats$snps, 
+                  cellOrder = comb.hc$labels[comb.hc$order], 
+                  region=comb.amp.regions.filtered) 
+plotGexpProfile(gexp.mats$gexp.norm, 
+                  gexp.mats$genes, 
+                  cellOrder = comb.hc$labels[comb.hc$order], 
+                  region=comb.amp.regions.filtered) 
+```
 

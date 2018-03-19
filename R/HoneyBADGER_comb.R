@@ -84,9 +84,6 @@ calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.
   }
   
   genes.of.interest <- unique(geneFactor)
-  if(verbose) {
-    cat(paste0('... within ', length(genes.of.interest), ' genes ... \n'))
-  }
   
   ## associate each gene factor with a set of snps
   genes2snps.dict <- lapply(seq_along(genes.of.interest), function(i) {
@@ -113,30 +110,30 @@ calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.
   ## j, i, k
   r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
   for(i in seq_len(numGenes)) {
-    snps <- genes2snps.dict[[i]]
-    for(s in seq_along(snps)) {
-      r.array[i,s,] <- r[snps[s],]
+    snpst <- genes2snps.dict[[i]]
+    for(s in seq_along(snpst)) {
+      r.array[i,s,] <- r.maf[snpst[s],]
     }
   }
   n.sc.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
   for(i in seq_len(numGenes)) {
-    snps <- genes2snps.dict[[i]]
-    for(s in seq_along(snps)) {
-      n.sc.array[i,s,] <- n.sc[snps[s],]
+    snpst <- genes2snps.dict[[i]]
+    for(s in seq_along(snpst)) {
+      n.sc.array[i,s,] <- n.sc[snpst[s],]
     }
   }
   l.array <- array(0, c(numGenes, numSnpsPerGene))
   for(i in seq_len(numGenes)) {
-    snps <- genes2snps.dict[[i]]
-    for(s in seq_along(snps)) {
-      l.array[i,s] <- l[snps[s]]
+    snpst <- genes2snps.dict[[i]]
+    for(s in seq_along(snpst)) {
+      l.array[i,s] <- l.maf[snpst[s]]
     }
   }
   n.bulk.array <- array(0, c(numGenes, numSnpsPerGene))
   for(i in seq_len(numGenes)) {
-    snps <- genes2snps.dict[[i]]
-    for(s in seq_along(snps)) {
-      n.bulk.array[i,s] <- n.bulk[snps[s]]
+    snpst <- genes2snps.dict[[i]]
+    for(s in seq_along(snpst)) {
+      n.bulk.array[i,s] <- n.bulk[snpst[s]]
     }
   }
   
