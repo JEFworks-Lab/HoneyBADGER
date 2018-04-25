@@ -108,7 +108,7 @@ To run the expression-based model, we recommend quantification by counts transfo
 For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformmed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.  
 
 ```{r, eval=FALSE}
-results <- getCellAlleleCount(snps, bamFile, indexFile, cellBarcodes)
+results <- getSnpMats10X(snps, bamFile, indexFile, cellBarcodes)
 ```
 
 
