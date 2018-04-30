@@ -48,13 +48,13 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
     print("Getting allele read counts...")
   }
   refCount <- unlist(lapply(seq_along(names), function(i) {
-    b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$REF)$value[i])
+    b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$REF)$x[i])
     if(length(b)==0) { return(0) } # neither allele observed
     else if(sum(b)==0) { return(0) } # alt allele observed only
     else { return(pu[pu$which_label==names[i],]$count[b]) }
   }))
   altCount <- unlist(lapply(seq_along(names), function(i) {
-    b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$ALT)$value[i])
+    b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$ALT)$value[i])
     if(length(b)==0) { return(0) } # neither allele observed
     else if(sum(b)==0) { return(0) } # ref allele observed only
     else { return(pu[pu$which_label==names[i],]$count[b]) }
@@ -116,13 +116,13 @@ getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = 
       print(paste0("Getting allele read counts for ", cell, "..."))
     }
     refCount <- unlist(lapply(seq_along(names), function(i) {
-      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$REF)$value[i])
+      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$REF)$x[i])
       if(length(b)==0) { return(0) } # neither allele observed
       else if(sum(b)==0) { return(0) } # alt allele observed only
       else { return(pu[pu$which_label==names[i],]$count[b]) }
     }))
     altCount <- unlist(lapply(seq_along(names), function(i) {
-      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(data.frame(gr$ALT)$value[i])
+      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$ALT)$value[i])
       if(length(b)==0) { return(0) } # neither allele observed
       else if(sum(b)==0) { return(0) } # ref allele observed only
       else { return(pu[pu$which_label==names[i],]$count[b]) }
