@@ -21,6 +21,7 @@ r_check_args: --no-build-vignettes --no-manual --timings
 # catch package installation issues sooner rather than later
 r_packages:
   - devtools
+  - ggraph
 r_github_packages:
   - GuangchuangYu/enrichplot # for some reason won't install via bioconductor
   - JEFworks/HoneyBADGER
