@@ -182,7 +182,7 @@ setGeneFactors=function(snps, txdb, fill=TRUE, verbose=TRUE) {
         if(verbose) {
             cat("Mapping snps to genes ... \n")
         }
-        gf <- ChIPseeker::annotatePeak(peak=snps, TxDb=txdb, verbose=verbose)
+        gf <- annotatePeak(peak=snps, TxDb=txdb, verbose=verbose)
         gf.df <- data.frame(gf)$geneId
         names(gf.df) <- names(snps)
         if(!fill) {

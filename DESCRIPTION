@@ -18,7 +18,7 @@ Imports:
 	rjags,
 	coda,
 	parallel,
-	ChIPseeker,
+	magrittr,
 	HiddenMarkov
 RoxygenNote: 6.0.1
 Suggests: 

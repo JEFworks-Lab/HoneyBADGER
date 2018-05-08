@@ -624,7 +624,7 @@ HoneyBADGER$methods(
         if(verbose) {
             cat("Mapping snps to genes ... \n")
         }
-        gf <- ChIPseeker::annotatePeak(peak=snps, TxDb=txdb)
+        gf <- annotatePeak(peak=snps, TxDb=txdb)
         gf.df <- data.frame(gf)$geneId
         names(gf.df) <- names(snps)
         if(!fill) {
