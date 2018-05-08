@@ -697,12 +697,12 @@ getGenomicAnnotation.internal <- function(peaks, genomicRegion, type, sameStrand
     strd <- as.character(strand(gr2))
     len <- GRegionLen[GRegionLen != 0]
     
-    GRegion$intron_rank <- lapply(seq_along(strd), function(i) {
+    GRegion$intron_rank <- unlist(lapply(seq_along(strd), function(i) {
       rank <- seq(1, len[i])
       if (strd[i] == '-')
         rank <- rev(rank)
       return(rank)
-    }) %>% unlist
+    }))
   }
   
   if (type == "Intron" || type =="Exon") {
