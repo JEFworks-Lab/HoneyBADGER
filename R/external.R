@@ -934,3 +934,80 @@ getGenomicAnnoStat <- function(peakAnno) {
   
 }
 
+
+
+##' Class "csAnno"
+##' This class represents the output of ChIPseeker Annotation
+##'
+##'
+##' @name csAnno-class
+##' @aliases csAnno-class
+##' show,csAnno-method vennpie,csAnno-method
+##' plotDistToTSS,csAnno-method plotAnnoBar,csAnno-method
+##' plotAnnoPie,csAnno-method upsetplot,csAnno-method
+##'
+##' @docType class
+##' @slot anno annotation
+##' @slot tssRegion TSS region
+##' @slot level transcript or gene
+##' @slot hasGenomicAnnotation logical
+##' @slot detailGenomicAnnotation Genomic Annotation in detail
+##' @slot annoStat annotation statistics
+##' @slot peakNum number of peaks
+##' @exportClass csAnno
+##' @author Guangchuang Yu \url{https://guangchuangyu.github.io}
+##' @seealso \code{\link{annotatePeak}}
+##' @keywords classes
+setClass("csAnno",
+         representation=representation(
+           anno = "GRanges",
+           tssRegion = "numeric",
+           level = "character",
+           hasGenomicAnnotation = "logical",
+           detailGenomicAnnotation="data.frame",
+           annoStat="data.frame",
+           peakNum="numeric"
+         ))
+
+
+##' convert csAnno object to GRanges
+##'
+##'
+##' @title as.GRanges
+##' @param x csAnno object
+##' @return GRanges object
+##' @author Guangchuang Yu \url{https://guangchuangyu.github.io}
+##' @export
+as.GRanges <- function(x) {
+  if (!is(x, "csAnno"))
+    stop("not supported...")
+  return(x@anno)
+}
+
+
+getAnnoStat <- function(x) {
+  if (!is(x, "csAnno"))
+    stop("not supported...")
+  return(x@annoStat)
+}
+
+##' convert csAnno object to data.frame
+##'
+##'
+##' @title as.data.frame.csAnno
+##' @param x csAnno object
+##' @param row.names row names
+##' @param optional should be omitted.
+##' @param ... additional parameters
+##' @return data.frame
+##' @author Guangchuang Yu \url{https://guangchuangyu.github.io}
+##' @method as.data.frame csAnno
+##' @export
+as.data.frame.csAnno <- function(x, row.names=NULL, optional=FALSE, ...) {
+  y <- as.GRanges(x)
+  if (!(is.null(row.names) || is.character(row.names)))
+    stop("'row.names' must be NULL or a character vector")
+  df <- as.data.frame(y)
+  rownames(df) <- row.names
+  return(df)
+}
