@@ -625,10 +625,10 @@ HoneyBADGER$methods(
             cat("Mapping snps to genes ... \n")
         }
         gf <- annotatePeak(peak=snps, TxDb=txdb)
-        gf.df <- data.frame(gf)$geneId
+        gf.df <- as.data.frame.csAnno(gf)$geneId
         names(gf.df) <- names(snps)
         if(!fill) {
-            gf.df[is.na(data.frame(gf)$annotation)] <- NA
+            gf.df[is.na(as.data.frame.csAnno(gf)$annotation)] <- NA
             gf.df <- na.omit(gf.df)
         }
         geneFactor <<- gf.df

@@ -18,7 +18,10 @@ Imports:
 	rjags,
 	coda,
 	parallel,
-	HiddenMarkov
+	HiddenMarkov,
+	GenomicFeatures,
+	AnnotationDbi,
+	TxDb.Hsapiens.UCSC.hg19.knownGene
 RoxygenNote: 6.0.1
 Suggests: 
   knitr,
