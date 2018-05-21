@@ -49,6 +49,7 @@ biocLite("GenomicRanges")
 - [Preparing data](Preparing_Data.md)
 - [Getting started](Getting_Started.md)
 - [Integrating with other analyses](Integrating.md)
+- [Interactive visualization](https://jef.works/blog/2018/04/15/interactive-honeybadger-laf-profiles/)
 
 ---
 
