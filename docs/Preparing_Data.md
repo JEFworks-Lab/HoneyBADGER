@@ -107,3 +107,8 @@ For 10X data, you can use the output of `CellRanger`. For example, the `Gene / c
 ``` r
 results <- getCellAlleleCount(snps, bamFile, indexFile, cellBarcodes)
 ```
+
+An alternative and much faster way of obtaining these allele-specific count tables is with the [scAlleleCount package](https://github.com/barkasn/scAlleleCount). Once installed you can issue the following command to obtain the tables:
+
+``` r
+results <- getFastCellAlleleCount(snps, bamFile, cellBarcodes)
