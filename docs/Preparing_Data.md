@@ -112,3 +112,4 @@ An alternative and much faster way of obtaining these allele-specific count tabl
 
 ``` r
 results <- getFastCellAlleleCount(snps, bamFile, cellBarcodes)
+```
