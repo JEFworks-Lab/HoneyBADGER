@@ -29,7 +29,7 @@ vcf <- readVcf(vcfFile, "hg19", param=param)
 snps <- rowData(vcf)
 # AF is the allele frequency for each alternate allele
 info <- info(vcf)
-maf <- info[, 'AF'] 
+maf <- info[, 'AF']
 # limit to common snps by MAF (ie. > 10% in population)
 maft <- 0.1
 vi <- sapply(maf, function(x) any(x > maft))
@@ -76,10 +76,10 @@ path <- "data-raw/"
 files <- list.files(path = path)
 # list of paths to bam files
 bamFiles <- files[grepl('.bam$', files)]
-bamFiles <- paste0(path, bamFiles) 
+bamFiles <- paste0(path, bamFiles)
 # list of paths to index files
-indexFiles <- files[grepl('.bai$', files)] 
-indexFiles <- paste0(path, indexFiles) 
+indexFiles <- files[grepl('.bai$', files)]
+indexFiles <- paste0(path, indexFiles)
 
 results <- getSnpMats(snps, bamFiles, indexFiles)
 ```

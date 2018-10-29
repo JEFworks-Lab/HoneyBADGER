@@ -18,47 +18,47 @@ data(cov.sc) ## total coverage
 allele.mats <- setAlleleMats(r, cov.sc)
 ```
 
-    ## Initializing allele matrices ... 
-    ## Creating in-silico bulk ... 
-    ## using 75 cells ... 
-    ## Filtering for putative heterozygous snps ... 
-    ## allowing for a 0.05 deviation from the expected 0.5 heterozygous allele fraction ... 
-    ## must have coverage in at least 3 cells ... 
-    ## 5552 heterozygous SNPs identified 
-    ## Setting composite lesser allele count ... 
+    ## Initializing allele matrices ...
+    ## Creating in-silico bulk ...
+    ## using 75 cells ...
+    ## Filtering for putative heterozygous snps ...
+    ## allowing for a 0.05 deviation from the expected 0.5 heterozygous allele fraction ...
+    ## must have coverage in at least 3 cells ...
+    ## 5552 heterozygous SNPs identified
+    ## Setting composite lesser allele count ...
     ## Done setting initial allele matrices!
 
 ``` r
 ## map snps to genes
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-geneFactor <- setGeneFactors(allele.mats$snps, 
+geneFactor <- setGeneFactors(allele.mats$snps,
                              TxDb.Hsapiens.UCSC.hg19.knownGene)
 ```
 
-    ## Mapping snps to genes ... 
-    ## >> preparing features information...      2018-03-19 09:39:30 
-    ## >> identifying nearest features...        2018-03-19 09:39:31 
-    ## >> calculating distance from peak to TSS...   2018-03-19 09:39:31 
-    ## >> assigning genomic annotation...        2018-03-19 09:39:31 
-    ## >> assigning chromosome lengths           2018-03-19 09:39:51 
-    ## >> done...                    2018-03-19 09:39:51 
+    ## Mapping snps to genes ...
+    ## >> preparing features information...      2018-03-19 09:39:30
+    ## >> identifying nearest features...        2018-03-19 09:39:31
+    ## >> calculating distance from peak to TSS...   2018-03-19 09:39:31
+    ## >> assigning genomic annotation...        2018-03-19 09:39:31
+    ## >> assigning chromosome lengths           2018-03-19 09:39:51
+    ## >> done...                    2018-03-19 09:39:51
     ## Done mapping snps to genes!
 
 Let's visually inspect for patterns of allelic imbalance using a lesser-allele-frequency (LAF) profile.
 
 ``` r
 ## set widths to known chromosome sizes from UCSC
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
-                  widths=c(249250621, 243199373, 198022430, 191154276, 
-                           180915260, 171115067, 159138663, 146364022, 
-                           141213431, 135534747, 135006516, 133851895, 
-                           115169878, 107349540, 102531392, 90354753, 
-                           81195210, 78077248, 59128983, 63025520, 
-                           51304566, 48129895)/1e7) 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
+                  widths=c(249250621, 243199373, 198022430, 191154276,
+                           180915260, 171115067, 159138663, 146364022,
+                           141213431, 135534747, 135006516, 133851895,
+                           115169878, 107349540, 102531392, 90354753,
+                           81195210, 78077248, 59128983, 63025520,
+                           51304566, 48129895)/1e7)
 ```
 
 ![](figure/Integrating/unnamed-chunk-5-1.png)
@@ -66,18 +66,18 @@ plotAlleleProfile(allele.mats$r.maf,
 Now let's use an HMM to identify potential CNV regions.
 
 ``` r
-potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf, 
-                                         allele.mats$n.sc, 
-                                         allele.mats$l.maf, 
-                                         allele.mats$n.bulk, 
-                                         allele.mats$snps, 
+potentialCnvs <- calcAlleleCnvBoundaries(allele.mats$r.maf,
+                                         allele.mats$n.sc,
+                                         allele.mats$l.maf,
+                                         allele.mats$n.bulk,
+                                         allele.mats$snps,
                                          geneFactor)
 ## visualize affected regions, set width to correspond to number of snps in affected region
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
                   region=potentialCnvs$region)
 ```
 
@@ -87,13 +87,13 @@ Having identified potential CNV boundaries, we can then apply our Bayesian hiera
 
 ``` r
 results <- do.call(rbind, lapply(potentialCnvs$region, function(region) {
-  calcAlleleCnvProb(allele.mats$r.maf, 
-                    allele.mats$n.sc, 
-                    allele.mats$l.maf, 
-                    allele.mats$n.bulk, 
-                    allele.mats$snps, 
-                    geneFactor, 
-                    region=region, 
+  calcAlleleCnvProb(allele.mats$r.maf,
+                    allele.mats$n.sc,
+                    allele.mats$l.maf,
+                    allele.mats$n.bulk,
+                    allele.mats$snps,
+                    geneFactor,
+                    region=region,
                     verbose=FALSE)
 }))
 ```
@@ -109,9 +109,9 @@ regions.filtered <- potentialCnvs$region[vi]
 ## cluster cells on posterior probability
 hc <- hclust(dist(t(results.filtered)), method='ward.D')
 ## visualize as heatmap
-heatmap(t(results.filtered), 
-        Rowv=as.dendrogram(hc), 
-        scale="none", 
+heatmap(t(results.filtered),
+        Rowv=as.dendrogram(hc),
+        scale="none",
         col=colorRampPalette(c('beige', 'grey', 'black'))(100))
 ```
 
@@ -119,11 +119,11 @@ heatmap(t(results.filtered),
 
 ``` r
 ## visualize all chromosomes using derived cell ordering
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
                   cellOrder = hc$labels[hc$order])
 ```
 
@@ -131,13 +131,13 @@ plotAlleleProfile(allele.mats$r.maf,
 
 ``` r
 ## visualize just detected CNVs
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
-                  cellOrder = hc$labels[hc$order], 
-                  region=regions.filtered) 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
+                  cellOrder = hc$labels[hc$order],
+                  region=regions.filtered)
 ```
 
 ![](figure/Integrating/unnamed-chunk-8-3.png)
@@ -150,7 +150,7 @@ print(table(cell.annot))
 ```
 
     ## cell.annot
-    ##  tumor normal 
+    ##  tumor normal
     ##     63     12
 
 Let's see how these tumor vs. normal annotations compare to when we cluster the data based on single-cell RNA-seq. The single-cell RNA-seq data has been prepared for you and is included in the `HoneyBADGER` package. First, load the gene expression matrices for the same set of cells.
@@ -163,15 +163,15 @@ gexp <- gexp[, names(cell.annot)] ## restrict to same set of cells
 We will perform dimensionality reduction and use tSNE to generate a 2D embedding.
 
 ``` r
-## 30 PCs 
-pcs <- prcomp(t(gexp))$x[,1:30] 
+## 30 PCs
+pcs <- prcomp(t(gexp))$x[,1:30]
 d <- dist(pcs, method='man')
 ## get tSNE embedding on PCs
-emb <- Rtsne::Rtsne(d, 
-                    is_distance=TRUE, 
-                    perplexity=10, 
-                    num_threads=parallel::detectCores(), 
-                    verbose=FALSE)$Y 
+emb <- Rtsne::Rtsne(d,
+                    is_distance=TRUE,
+                    perplexity=10,
+                    num_threads=parallel::detectCores(),
+                    verbose=FALSE)$Y
 rownames(emb) <- rownames(pcs)
 ## plot
 library(MUDAN)
@@ -187,7 +187,7 @@ Indeed, the putative normal cells and tumor cells separate transcriptionally. We
 ``` r
 ## differential expression analysis by simple t-test
 pv <- do.call(rbind, lapply(rownames(gexp), function(g) {
-  tr <- t.test(gexp[g, cell.annot=='normal'], 
+  tr <- t.test(gexp[g, cell.annot=='normal'],
          gexp[g, cell.annot=='tumor'])
   return(c(p.value=tr$p.value, statistic=tr$statistic, tr$estimate))
 }))
@@ -297,7 +297,7 @@ com <- getComMembership(pcs, k=5, method=igraph::cluster_walktrap)
     ## [1] "graph modularity: 0.437421053647995"
     ## [1] "identifying cluster membership ..."
     ## com
-    ##  1  2  3  4  5 
+    ##  1  2  3  4  5
     ## 22 23  9 15  6
 
 ``` r
@@ -330,8 +330,8 @@ gexp.normal <- gexp[, names(cell.annot)[which(cell.annot=='normal')]]
 gexp.mats <- setGexpMats(gexp, gexp.normal, mart.obj, filter=FALSE, scale=FALSE)
 ```
 
-    ## Initializing expression matrices ... 
-    ## Normalizing gene expression for 6082 genes and 75 cells ... 
+    ## Initializing expression matrices ...
+    ## Normalizing gene expression for 6082 genes and 75 cells ...
     ## Done setting initial expression matrices!
 
 Let's visually inspect for patterns by plotting a sliding window normalized gene expression profile.
@@ -339,16 +339,16 @@ Let's visually inspect for patterns by plotting a sliding window normalized gene
 ``` r
 ## set widths to known chromosome sizes from UCSC
 ## order cells by previous order derived from allele-based approach
-gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, 
-                             gexp.mats$genes, 
-                             widths=c(249250621, 243199373, 198022430, 
+gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
+                             gexp.mats$genes,
+                             widths=c(249250621, 243199373, 198022430,
                                       191154276, 180915260, 171115067,
-                                      159138663, 146364022, 141213431, 
-                                      135534747, 135006516, 133851895, 
-                                      115169878, 107349540, 102531392, 
-                                      90354753, 81195210, 78077248, 
-                                      59128983, 63025520, 51304566, 
-                                      48129895)/1e7, cellOrder=hc$labels[hc$order]) 
+                                      159138663, 146364022, 141213431,
+                                      135534747, 135006516, 133851895,
+                                      115169878, 107349540, 102531392,
+                                      90354753, 81195210, 78077248,
+                                      59128983, 63025520, 51304566,
+                                      48129895)/1e7, cellOrder=hc$labels[hc$order])
 ```
 
 ![](figure/Integrating/unnamed-chunk-16-1.png)
@@ -356,7 +356,7 @@ gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
 Let's use our expression-based HMM to identify potential CNVs.
 
 ``` r
-dev <- setGexpDev(gexp.mats$gexp.norm) 
+dev <- setGexpDev(gexp.mats$gexp.norm)
 potentialCnvs.new <- calcGexpCnvBoundaries(gexp.mats$gexp.norm, gexp.mats$genes, m=dev)
 ```
 
@@ -372,16 +372,16 @@ mvFit <- setMvFit(gexp.mats$gexp.norm)
 
 ``` r
 comb.amp.results <- do.call(rbind, lapply(amp.regions, function(region) {
-  calcCombCnvProb(gexp.norm=gexp.mats$gexp.norm, 
-                  genes=gexp.mats$genes, 
+  calcCombCnvProb(gexp.norm=gexp.mats$gexp.norm,
+                  genes=gexp.mats$genes,
                   mvFit=mvFit,
-                  m=dev, 
-                  r.maf=allele.mats$r.maf, 
-                  n.sc=allele.mats$n.sc, 
-                  l.maf=allele.mats$l.maf, 
-                  n.bulk=allele.mats$n.bulk, 
-                  snps=allele.mats$snps, 
-                  geneFactor=geneFactor, 
+                  m=dev,
+                  r.maf=allele.mats$r.maf,
+                  n.sc=allele.mats$n.sc,
+                  l.maf=allele.mats$l.maf,
+                  n.bulk=allele.mats$n.bulk,
+                  snps=allele.mats$snps,
+                  geneFactor=geneFactor,
                   region=region,
                   verbose=FALSE)[[1]] # amplification prob
 }))
@@ -400,28 +400,28 @@ comb.results.filtered <- rbind(comb.amp.results.filtered, results.filtered)
 ## cluster cells on posterior probability
 comb.hc <- hclust(dist(t(comb.results.filtered)), method='ward.D')
 ## visualize as heatmap
-heatmap(t(comb.results.filtered), 
-        Rowv=as.dendrogram(comb.hc), 
-        scale="none", 
+heatmap(t(comb.results.filtered),
+        Rowv=as.dendrogram(comb.hc),
+        scale="none",
         col=colorRampPalette(c('beige', 'grey', 'black'))(100))
 ```
 
 ![](figure/Integrating/unnamed-chunk-19-1.png)
 
 ``` r
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
                   cellOrder = comb.hc$labels[comb.hc$order])
 ```
 
 ![](figure/Integrating/unnamed-chunk-19-2.png)
 
 ``` r
-gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, 
-                  gexp.mats$genes, 
+gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
+                  gexp.mats$genes,
                   cellOrder = comb.hc$labels[comb.hc$order])
 ```
 
@@ -429,22 +429,22 @@ gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
 
 ``` r
 ## visualize newly detected amplifications
-plotAlleleProfile(allele.mats$r.maf, 
-                  allele.mats$n.sc, 
-                  allele.mats$l.maf, 
-                  allele.mats$n.bulk, 
-                  allele.mats$snps, 
-                  cellOrder = comb.hc$labels[comb.hc$order], 
-                  region=comb.amp.regions.filtered) 
+plotAlleleProfile(allele.mats$r.maf,
+                  allele.mats$n.sc,
+                  allele.mats$l.maf,
+                  allele.mats$n.bulk,
+                  allele.mats$snps,
+                  cellOrder = comb.hc$labels[comb.hc$order],
+                  region=comb.amp.regions.filtered)
 ```
 
 ![](figure/Integrating/unnamed-chunk-19-4.png)
 
 ``` r
-gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm, 
-                  gexp.mats$genes, 
-                  cellOrder = comb.hc$labels[comb.hc$order], 
-                  region=comb.amp.regions.filtered) 
+gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
+                  gexp.mats$genes,
+                  cellOrder = comb.hc$labels[comb.hc$order],
+                  region=comb.amp.regions.filtered)
 ```
 
 ![](figure/Integrating/unnamed-chunk-19-5.png)
