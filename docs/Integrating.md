@@ -1,4 +1,4 @@
-To accomodate user/developer preferences, `HoneyBADGER` can be used with or without the `HoneyBADGER` object. In this tutorial, we will go through an analysis without the `HoneyBADGER` object, which lends itself to potentially easier downstream integration with other analysis pipelines.
+To accommodate user/developer preferences, `HoneyBADGER` can be used with or without the `HoneyBADGER` object. In this tutorial, we will go through an analysis without the `HoneyBADGER` object, which lends itself to potentially easier downstream integration with other analysis pipelines.
 
 In this tutorial, we will use `HoneyBADGER` to detect CNVs in glioblastoma cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). We will then characterize the transcriptional differences between detected genetic subclones using differential expression and gene set enrichment analyses as examples of potential integrative analyses enabled by `HoneyBADGER`.
 
