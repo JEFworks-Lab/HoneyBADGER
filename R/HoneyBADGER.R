@@ -26,7 +26,7 @@
 #'
 #' @export HoneyBADGER
 #' @exportClass HoneyBADGER
-#' 
+#'
 HoneyBADGER <- setRefClass(
 
     "HoneyBADGER",
@@ -58,10 +58,10 @@ HoneyBADGER <- setRefClass(
         'cnvs' ## GenomicRanges of identified CNVs
     ),
 
-    methods = list(        
+    methods = list(
 
         initialize=function(x=NULL, name='project') {
-            
+
             name <<- name;
             r <<- NULL;
             n.sc <<- NULL;
@@ -89,7 +89,7 @@ HoneyBADGER <- setRefClass(
             summary <<- list()
             cnvs <<- list()
         }
-        
+
     )
 )
 
@@ -108,26 +108,26 @@ HoneyBADGER <- setRefClass(
 #' @param id biomaRt ID for genes c(default: 'hgnc_symbol')
 #' @param verbose Verbosity (default: TRUE)
 #'
-#' @examples 
+#' @examples
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-#'     dataset = 'hsapiens_gene_ensembl', 
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+#'     dataset = 'hsapiens_gene_ensembl',
 #'     host = "jul2015.archive.ensembl.org")
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
-#' 
+#'
 HoneyBADGER$methods(
     setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
         if(verbose) {
           cat("Initializing expression matrices ... \n")
         }
-        
+
         if(class(gexp.ref.init)!='Matrix') {
             gexp.ref.init <- as.matrix(gexp.ref.init)
         }
-        
+
         vi <- intersect(rownames(gexp.sc.init), rownames(gexp.ref.init))
         if(length(vi) < 10) {
             cat('WARNING! GENE NAMES IN EXPRESSION MATRICES DO NOT SEEM TO MATCH! \n')
@@ -162,10 +162,10 @@ HoneyBADGER$methods(
         ##gos$pos <- (gos$start_position + gos$end_position)/2
         rownames(gos) <- make.unique(gos[[id]])
         gos <- gos[rownames(gexp.norm),]
-        
+
         if(nrow(gos)==0) {
             cat('ERROR! WRONG BIOMART GENE IDENTIFIER. Use ensembl_gene_id instead of hgnc_symbol? \n')
-        }        
+        }
 
         if(length(grep('chr', gos$chromosome_name))==0) {
             gos$chromosome_name <- paste0('chr', gos$chromosome_name)
@@ -197,18 +197,18 @@ HoneyBADGER$methods(
 #' @param setWidths Boolean for whether or not to adjust widths of chomosomes based on number of genes. Otherwise uniform size. (default: FALSE)
 #' @param order Order of cells (default: NULL)
 #' @param defailt Boolean for whether to return detailed smoothed profiles (default: FALSE)
-#' 
-#' @examples 
+#'
+#' @examples
 #' data(gexp)
 #' data(ref)
 #' require(biomaRt) ## for gene coordinates
-#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-#'     dataset = 'hsapiens_gene_ensembl', 
+#' mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+#'     dataset = 'hsapiens_gene_ensembl',
 #'     host = "jul2015.archive.ensembl.org")
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
-#' hb$plotGexpProfile() 
-#' 
+#' hb$plotGexpProfile()
+#'
 HoneyBADGER$methods(
     plotGexpProfile=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), region=NULL, window.size=101, zlim=c(-2,2), setOrder=FALSE, setWidths=FALSE, cellOrder=NULL, returnPlot=FALSE) {
         if(!is.null(gexp.norm.sub)) {
@@ -227,7 +227,7 @@ HoneyBADGER$methods(
           gexp.norm <- gexp.norm[vi,]
           genes <- genes[rownames(gexp.norm)]
         }
-      
+
         gos <- as.data.frame(genes)
         rownames(gos) <- names(genes)
         mat <- gexp.norm
@@ -298,7 +298,7 @@ HoneyBADGER$methods(
 #' @param rep Number of repeats/resampling (default: 50)
 #' @param plot Whether to plot (default: FALSE)
 #' @param verbose Verbosity (default: TRUE)
-#' 
+#'
 HoneyBADGER$methods(
     setMvFit=function(num.genes = seq(5, 100, by=5), rep = 50, plot=FALSE, verbose=TRUE) {
         if(verbose) {
@@ -352,7 +352,7 @@ HoneyBADGER$methods(
         })
         names(fits) <- colnames(gexp.norm)
         mvFit <<- fits
-        
+
         if(verbose) {
             cat('Done!')
         }
@@ -448,7 +448,7 @@ HoneyBADGER$methods(
         if(verbose) {
             cat('...Done!')
         }
-        
+
         snpLike <- samples
         v <- colnames(snpLike)
         S <- snpLike[,grepl('S', v)]
@@ -467,27 +467,27 @@ HoneyBADGER$methods(
     }
 )
 
-    
+
 #' Set allele count matrices, creates in-silico pooled single cells as bulk reference if none provided
-#' 
+#'
 #' @name HoneyBADGER_setAlleleMats
 #' @param r.init SNP site alternate allele count matrix for single cells
 #' @param n.sc.init SNP site coverage count matrix for single cells
 #' @param l.init SNP site alternate allele counts for bulk reference. If NULL, in silico bulk will be created from single cells.
 #' @param n.bulk.init SNP site coverage counts for bulk reference. If NULL, in silico bulk will be created from single cells.
-#' @param het.deviance.threshold Deviation from expected 0.5 heterozygous fraction 
+#' @param het.deviance.threshold Deviation from expected 0.5 heterozygous fraction
 #' @param min.cell Minimum number of cells a SNP must have coverage observed in
 #' @param n.cores Number of cores
 #' @param verbose Verbosity
 #'
 HoneyBADGER$methods(
     setAlleleMats=function(r.init, n.sc.init, l.init=NULL, n.bulk.init=NULL, filter=TRUE, het.deviance.threshold=0.05, min.cell=3, n.cores=1, verbose=TRUE) {
-        if(verbose) {  
+        if(verbose) {
           cat("Initializing allele matrices ... \n")
         }
-      
+
         if(is.null(l.init) | is.null(n.bulk.init)) {
-          if(verbose) { 
+          if(verbose) {
             cat("Creating in-silico bulk ... \n")
             cat(paste0("using ", ncol(r.init), " cells ... \n"))
           }
@@ -499,7 +499,7 @@ HoneyBADGER$methods(
         }
 
         if(filter) {
-            if(verbose) { 
+            if(verbose) {
                 cat("Filtering for putative heterozygous snps ... \n")
                 cat(paste0("allowing for a ", het.deviance.threshold, " deviation from the expected 0.5 heterozygous allele fraction ... \n"))
             }
@@ -515,7 +515,7 @@ HoneyBADGER$methods(
             n.bulk <<- n.bulk[vi]
 
             ## must have coverage in at least 5 cells
-            if(verbose) { 
+            if(verbose) {
                 cat(paste0("must have coverage in at least ", min.cell, " cells ... \n"))
             }
             vi <- rowSums(n.sc > 0) >= min.cell
@@ -530,7 +530,7 @@ HoneyBADGER$methods(
             n.sc <<- n.sc.init
         }
         if(is.null(r.maf) | is.null(l.maf) | !is.null(r.init) | !is.null(l.init)) {
-            if(verbose) { 
+            if(verbose) {
                 cat("Setting composite lesser allele count ... \n")
             }
             E <- l/n.bulk
@@ -582,7 +582,7 @@ HoneyBADGER$methods(
                 else {
                     mut.frac <- 0
                 }
-                
+
                 ## f will be high if inconsistent
                 ## f will be low if consistent
                 ## f will be NaN if no coverage
@@ -605,13 +605,13 @@ HoneyBADGER$methods(
         snps <<- with(snps.df, GenomicRanges::GRanges(chr, IRanges::IRanges(as.numeric(as.character(start)), as.numeric(as.character(end)))))
         names(snps) <<- rownames(r) <<- rownames(r.maf) <<- rownames(n.sc) <<- names(l) <<- names(l.maf) <<- names(n.bulk) <<- apply(snps.df, 1, paste0, collapse=":")
 
-        if(verbose) { 
+        if(verbose) {
             cat("Done setting initial allele matrices! \n")
         }
     }
 )
 
-    
+
 #' Maps snps to genes
 #'
 #' @name HoneyBADGER_setGeneFactors
@@ -638,22 +638,22 @@ HoneyBADGER$methods(
     }
 )
 
-    
+
 #' Plot allele profile
 #'
 #' @name HoneyBADGER_plotAlleleProfile
 #' @param r.sub SNP lesser allele count matrix for single cells. If NULL, object's r.maf will be used
-#' @param n.sc.sub SNP coverage count matrix for single cells. If NULL, object's n.sc will be used 
+#' @param n.sc.sub SNP coverage count matrix for single cells. If NULL, object's n.sc will be used
 #' @param l.sub SNP lesser allele count matrix for bulk refernece. If NULL, object's l.maf will be used
 #' @param n.bulk.sub SNP coverage count matrix for bulk refernece. If NULL, object's n.bulk will be used
 #' @param region Limit plotting to particular GenomicRanges regions
-#' @param chrs Limit plotting to select chromosomes. Default autosomes only. (default: paste0('chr', c(1:22))) 
+#' @param chrs Limit plotting to select chromosomes. Default autosomes only. (default: paste0('chr', c(1:22)))
 #' @param setWidths Set widths on chromosomes based on SNP density. Otherwise will be uniform.
 #' @param cellOrder Order of cells. Otherwise will be same order as in input matrix
 #' @param filter Remove sites with no coverage
-#' @param returnPlot Whether to return ggplot object 
+#' @param returnPlot Whether to return ggplot object
 #' @param max.ps Maximum point size for plot
-#' 
+#'
 #'
 HoneyBADGER$methods(
     plotAlleleProfile=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, chrs=paste0('chr', c(1:22)), setWidths=FALSE, cellOrder=NULL, filter=FALSE, returnPlot=FALSE, max.ps=3) {
@@ -683,7 +683,7 @@ HoneyBADGER$methods(
             l.maf <- l.maf[vi]
             n.bulk <- n.bulk[vi]
 
-            chrs <- region@seqnames@values 
+            chrs <- region@seqnames@values
         }
         if(!is.null(cellOrder)) {
             r.maf <- r.maf[,cellOrder]
@@ -703,15 +703,15 @@ HoneyBADGER$methods(
 
         require(ggplot2)
         require(reshape2)
-        
+
         if(setWidths) {
             widths <- sapply(chrs, function(chr) {
                 sum(grepl(paste0('^',chr,':'), rownames(r)))
             }); widths <- widths/max(widths)*100
         } else {
             widths <- rep(1, length(chrs))
-        }                    
-        
+        }
+
         plist <- lapply(chrs, function(chr) {
             vi <- grepl(paste0('^',chr,':'), rownames(r.tot))
             m <- melt(t(r.tot[vi,]))
@@ -726,7 +726,7 @@ HoneyBADGER$methods(
             n$coverage <- n$coverage^(1/3) # cube root for visualization purposes only
             n$coverage[n$coverage==0] <- NA # if no coverage, just don't show
             dat <- cbind(m, coverage=n$coverage)
-            
+
             p <- ggplot(dat, aes(snp, cell)) +
                 ## geom_tile(alpha=0) +
                 geom_point(aes(colour = alt.frac, size = coverage), na.rm=TRUE) +
@@ -734,7 +734,7 @@ HoneyBADGER$methods(
                 ## scale_colour_gradientn(colours = rainbow(10)) +
                 scale_colour_gradient2(mid="yellow", low = "turquoise", high = "red", midpoint=0.5) +
                 theme(
-                    panel.grid.major = element_blank(), 
+                    panel.grid.major = element_blank(),
                     panel.grid.minor = element_blank(),
                     panel.background = element_blank(),
                     axis.text.x=element_blank(),
@@ -759,7 +759,7 @@ HoneyBADGER$methods(
                 ## )
             return(p)
         })
-        
+
         if(returnPlot) {
             return(plist)
         } else {
@@ -804,8 +804,8 @@ HoneyBADGER$methods(
       n.sc <- n.sc[vi,]
       l.maf <- l.maf[vi]
       n.bulk <- n.bulk[vi]
-      
-      chrs <- region@seqnames@values 
+
+      chrs <- region@seqnames@values
     }
     if(!is.null(cellOrder)) {
       r.maf <- r.maf[,cellOrder]
@@ -819,12 +819,12 @@ HoneyBADGER$methods(
       l.maf <- l.maf[vi]
       n.bulk <- n.bulk[vi]
     }
-    
+
     r.tot <- cbind(r.maf/n.sc, 'Bulk'=l.maf/n.bulk)
     n.tot <- cbind(n.sc, 'Bulk'=n.bulk)
-    
+
     mat <- r.maf/n.sc
-    
+
     ## organize into chromosomes
     gos <- as.data.frame(snps)
     tl <- tapply(1:nrow(gos),as.factor(gos$seqnames),function(ii) {
@@ -832,7 +832,7 @@ HoneyBADGER$methods(
     })
     ## only care about these chromosomes
     tl <- tl[chrs]
-    
+
     if(!is.null(r.sub) | !is.null(region)) {
       ## remove empty; need more than 1 gene
       vi <- unlist(lapply(tl, function(x) {
@@ -841,7 +841,7 @@ HoneyBADGER$methods(
       }))
       tl <- tl[vi]
     }
-    
+
     ## https://genome.ucsc.edu/goldenpath/help/hg19.chrom.sizes
     ##chr.sizes <- c(249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540, 102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 51304566, 48129895)
     ##l <- layout(matrix(seq(1, length(tl)),1,length(tl),byrow=T), widths=chr.sizes/1e7)
@@ -851,7 +851,7 @@ HoneyBADGER$methods(
       widths <- rep(1, length(tl))
     }
     l <- layout(matrix(seq(1,length(tl)),1,length(tl),byrow=TRUE), widths=widths)
-    
+
     if(setOrder) {
       avgd <- do.call(rbind, lapply(names(tl),function(nam) {
         d <- tl[[nam]]
@@ -861,9 +861,9 @@ HoneyBADGER$methods(
       hc <- hclust(dist(t(avgd)))
       cellOrder <- hc$order
     }
-    
+
     tlsub <- tl
-    
+
     pcol <- colorRampPalette(c('turquoise', 'yellow', 'red'))(256)
 
     ## plot chromosomes
@@ -878,11 +878,11 @@ HoneyBADGER$methods(
       image(seq_len(nrow(d)), seq_len(ncol(d)), d, col=pcol, zlim=c(0,1), xlab="", ylab="", axes=FALSE, main=nam)
       box()
     })
-    
+
     if(returnPlot) {
       return(tlsmooth)
     }
-    
+
   }
 )
 
@@ -890,18 +890,18 @@ HoneyBADGER$methods(
 #' Calculate posterior probability of CNVs using allele data
 #'
 #' @name HoneyBADGER_calcAlleleCnvProb
-#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
-#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
-#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
-#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.  
-#' @param region GenomicRanges region of interest such as expected CNV boundaries. 
+#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.
+#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.
+#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.
+#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.
+#' @param region GenomicRanges region of interest such as expected CNV boundaries.
 #' @param filter Boolean for whether to filter out SNP sites with no coverage. (default: TRUE)
 #' @param pe Effective error rate to capture error from sequencing, etc. (default: 0.01)
 #' @param mono Rate of mono-allelic expression. (default: 0.7)
 #' @param n.iter Number of iterations in MCMC. (default: 1000)
 #' @param quiet Boolean of whether to suppress progress bar. (default: TRUE)
 #' @param verbose Verbosity(default: FALSE)
-#' 
+#'
 HoneyBADGER$methods(
     calcAlleleCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=TRUE, verbose=FALSE) {
         if(!is.null(r.sub)) {
@@ -967,7 +967,7 @@ HoneyBADGER$methods(
         if(verbose) {
             cat('converting to multi-dimensional arrays ... ')
         }
-        
+
         ## Convert to multi-dimensions based on j
         I.j <- unlist(lapply(genes2snps.dict, length))
         numGenes <- length(genes2snps.dict)
@@ -1027,7 +1027,7 @@ HoneyBADGER$methods(
         if(verbose) {
             cat('Done modeling!')
         }
-        
+
         parameters <- 'S'
         samples <- coda.samples(model, parameters, n.iter=n.iter, progress.bar=ifelse(quiet,"none","text"))
         samples <- do.call(rbind, samples) # combine samples across chains
@@ -1041,14 +1041,14 @@ HoneyBADGER$methods(
 
 
 #' Set needed absolute gene expression deviance to be able to distinguish neutral from amplified or deletion regions
-#' 
+#'
 #' @name HoneyBADGER_setGexpDev
 #' @param alpha Alpha level (default: 0.05)
 #' @param n Number of repeats for estimating parameter (default: 100)
 #' @param seed Random seed
 #' @param plot Plotting
 #' @param verbose Verbosity
-#' 
+#'
 HoneyBADGER$methods(
   setGexpDev=function(alpha=0.05, n=100, seed=0, plot=FALSE, verbose=FALSE) {
       k = 101
@@ -1075,9 +1075,9 @@ HoneyBADGER$methods(
 )
 
 #' Recursive HMM to identify CNV boundaries using normalized gene expression data
-#' 
+#'
 #' @name HoneyBADGER_calcGexpCnvBoundaries
-#' @param gexp.norm.sub Optional normalized gene expression matrix. Useful for manual testing of restricted regions. If NULL, gexp.norm within the HoneyBADGER object will be used. 
+#' @param gexp.norm.sub Optional normalized gene expression matrix. Useful for manual testing of restricted regions. If NULL, gexp.norm within the HoneyBADGER object will be used.
 #' @param chrs List of chromosome names. Genes not mapping to these chromosomes will be excluded. Default autosomes only: paste0('chr', c(1:22))
 #' @param min.traverse Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)
 #' @param min.num.genes Minimum number of genes within a CNV. (default: 5)
@@ -1085,7 +1085,7 @@ HoneyBADGER$methods(
 #' @param init Initialize recursion (default: FALSE)
 #' @param verbose Verbosity (default: FALSE)
 #' @param ... Additional parameters for \code{\link{calcGexpCnvProb}}
-#' 
+#'
 HoneyBADGER$methods(
     calcGexpCnvBoundaries=function(gexp.norm.sub=NULL, chrs=paste0('chr', c(1:22)), min.traverse=5, min.num.genes=10, t=1e-6, init=FALSE, verbose=FALSE, ...) {
         if(!is.null(gexp.norm.sub)) {
@@ -1216,12 +1216,12 @@ HoneyBADGER$methods(
                 }
                 ## now that we have boundaries, run on all cells
                 prob <- calcGexpCnvProb(gexp.norm.sub=gexp.norm[bound.genes.new, ], m=dev, verbose=verbose, ...)
-                
+
                 if(verbose) {
                     cat("AMPLIFICATION PROBABILITY: ")
                     cat(prob[[1]])
                     cat("\n")
-    
+
                     cat("DELETION PROBABILITY: ")
                     cat(prob[[2]])
                     cat("\n")
@@ -1271,7 +1271,7 @@ HoneyBADGER$methods(
             print(bound.genes.new)
             print(prob.fin)
         }
-        
+
         ## need better threshold
         g1 <- colnames(prob.fin)[prob.fin > 0.75]
         if(verbose) {
@@ -1317,20 +1317,20 @@ HoneyBADGER$methods(
 #' Recursive HMM to identify CNV boundaries using allele data
 #'
 #' @name HoneyBADGER_calcAlleleCnvBoundaries
-#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.  
-#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.  
-#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.  
-#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.  
+#' @param r.sub Optional matrix of alt allele count in single cells. If not provided, internal r.sc matrix is used.
+#' @param n.sub Optional matrix of site coverage count in single cells. If not provided, internal n.sc matrix is used.
+#' @param l.sub Optional vector of alt allele count in pooled single cells or bulk. If not provided, internal l vector is used.
+#' @param n.bulk.sub Optional vector of site coverage count in pooled single cells or bulk. If not provided, internal n.bulk vector is used.
 #' @param min.traverse Depth traversal to look for subclonal CNVs. Higher depth, potentially smaller subclones detectable. (default: 3)
 #' @param t HMM transition parameter. Higher number, more transitions. (default: 1e-6)
-#' @param pd Probability of lesser allele detection in deleted region (ie. due to error) 
-#' @param pn Probability of lesser allele detection in neutral region (ie. 0.5 - error rate) 
+#' @param pd Probability of lesser allele detection in deleted region (ie. due to error)
+#' @param pn Probability of lesser allele detection in neutral region (ie. 0.5 - error rate)
 #' @param min.num.snps Minimum number of snps in candidate CNV
 #' @param trim Trim boundary SNPs
 #' @param init Boolean whether to initialize
 #' @param verbose Verbosity(default: FALSE)
 #' @param ... Additional parameters to pass to calcAlleleCnvProb
-#' 
+#'
 HoneyBADGER$methods(
     calcAlleleCnvBoundaries=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, min.traverse=3, t=1e-6, pd=0.1, pn=0.45, min.num.snps=5, trim=0.1, init=FALSE, verbose=FALSE, ...) {
 
@@ -1427,7 +1427,7 @@ HoneyBADGER$methods(
         if(verbose) {
             cat(paste0('max vote:', max(vote), '\n'))
         }
-        
+
         if(max(vote)==0) {
             if(verbose) {
               cat('Exiting; no new bound SNPs found.\n')
@@ -1477,7 +1477,7 @@ HoneyBADGER$methods(
                 cat('SNPS AFFECTED BY DELETION/LOH: ')
                 cat(bound.snps.new)
             }
-            
+
             ##clafProfile(r[bound.snps.new, hc$labels[hc$order]], n.sc[bound.snps.new, hc$labels[hc$order]], l[bound.snps.new], n.bulk[bound.snps.new])
 
             ## now that we have boundaries, run on all cells
@@ -1487,7 +1487,7 @@ HoneyBADGER$methods(
                 cat("DELETION/LOH PROBABILITY:")
                 cat(del.prob)
             }
-            
+
             return(list('dp'=del.prob, 'bs'=bound.snps.new))
         })
         ##print(del.prob.info)
@@ -1524,7 +1524,7 @@ HoneyBADGER$methods(
             cat(bound.snps.new)
             cat(del.prob.fin)
         }
-        
+
         ## need better threshold
         g1 <- colnames(del.prob.fin)[del.prob.fin > 0.75]
         if(verbose) {
@@ -1576,12 +1576,12 @@ HoneyBADGER$methods(
 )
 
 
-#' Calculate posterior probability of CNVs using normalized expression data and allele data 
+#' Calculate posterior probability of CNVs using normalized expression data and allele data
 #'
 #' @name HoneyBADGER_calcCombCnvProb
-#' @inheritParams HoneyBADGER_calcGexpCnvProb 
-#' @inheritParams HoneyBADGER_calcAlleleCnvProb 
-#' 
+#' @inheritParams HoneyBADGER_calcGexpCnvProb
+#' @inheritParams HoneyBADGER_calcAlleleCnvProb
+#'
 HoneyBADGER$methods(
     calcCombCnvProb=function(r.sub=NULL, n.sc.sub=NULL, l.sub=NULL, n.bulk.sub=NULL, gexp.norm.sub=NULL, m=0.15, region=NULL, filter=FALSE, pe=0.1, mono=0.7, n.iter=1000, quiet=FALSE, verbose=FALSE) {
         if(!is.null(r.sub)) {
@@ -1602,7 +1602,7 @@ HoneyBADGER$methods(
             gexp.norm <- gexp.norm.sub
             genes <- genes[rownames(gexp.norm.sub)]
             mvFit <- mvFit[colnames(gexp.norm.sub)]
-        }            
+        }
         gexp <- gexp.norm
         gos <- genes
         fits <- mvFit
@@ -1664,18 +1664,18 @@ HoneyBADGER$methods(
         }
 
         gexp <- gexp[, colnames(r.maf)]
-        
+
         if(verbose) {
           cat('Assessing posterior probability of CNV in region ... \n')
           cat(paste0('with ', nrow(gexp), ' genes ... '))
           cat(paste0('and ', length(n.bulk), ' snps ... '))
         }
-        
+
         genes.of.interest <- unique(geneFactor)
         if(verbose) {
             cat(paste0('... within ', length(genes.of.interest), ' genes ... \n'))
         }
-        
+
         ## associate each gene factor with a set of snps
         genes2snps.dict <- lapply(seq_along(genes.of.interest), function(i) {
             names(geneFactor)[which(geneFactor %in% genes.of.interest[i])]
@@ -1688,11 +1688,11 @@ HoneyBADGER$methods(
         ng <- nrow(gexp)
         sigma0 <- unlist(lapply(fits, function(fit) sqrt(10^predict(fit, newdata=data.frame(x=ng), interval="predict")[, 'fit'])))
         ##gexp <- rbind(apply(gexp, 2, mean), apply(gexp, 2, median))
-        
+
         if(verbose) {
           cat('Converting to multi-dimensional arrays...')
         }
-        
+
         ## Convert to multi-dimensions based on j
         I.j <- unlist(lapply(genes2snps.dict, length))
         numGenes <- length(genes2snps.dict)
@@ -1727,7 +1727,7 @@ HoneyBADGER$methods(
             n.bulk.array[i,s] <- n.bulk[snpst[s]]
           }
         }
-        
+
         if(verbose) {
           cat('Aggregating data to list...')
         }
@@ -1746,20 +1746,20 @@ HoneyBADGER$methods(
             'sigma0' = sigma0,
             'mag0' = m
         )
-        
+
         modelFile <- system.file("bug", "combinedModel.bug", package = "HoneyBADGER")
-        
+
         if(verbose) {
             cat('Initializing model...')
         }
-        
+
         model <- rjags::jags.model(modelFile, data=data, n.chains=4, n.adapt=300, quiet=quiet)
         update(model, 300, progress.bar=ifelse(quiet,"none","text"))
-        
+
         parameters <- c('S', 'dd')
         samples <- coda.samples(model, parameters, n.iter=300, progress.bar=ifelse(quiet,"none","text"))
         samples <- do.call(rbind, samples) # combine chains
-        
+
         snpLike <- samples
         v <- colnames(snpLike)
         S <- snpLike[,grepl('S', v)]
@@ -1778,17 +1778,17 @@ HoneyBADGER$methods(
                )
     }
 )
-        
+
 
 #' Calculate posterior probability of CNVs for regions identified by the recursive HMM approach
 #'
 #' @name HoneyBADGER_retestIdentifiedCnvs
-#' @param retestBoundGenes Boolean of whether to retest using expression model 
-#' @param retestBoundSnps Boolean of whether to retest using allele model 
+#' @param retestBoundGenes Boolean of whether to retest using expression model
+#' @param retestBoundSnps Boolean of whether to retest using allele model
 #' @param intersect If true will intersect regions identified from allele and expression HMMs. Otherwise, will union
-#' @param verbose Verbosity 
+#' @param verbose Verbosity
 #' @param ... Additional parameters to pass to calcGexpCnvProb or calcAlleleCnvProb
-#' 
+#'
 HoneyBADGER$methods(
     retestIdentifiedCnvs=function(retestBoundGenes=TRUE, retestBoundSnps=FALSE, intersect=FALSE, verbose=FALSE, ...) {
         if(retestBoundGenes) {
@@ -1859,7 +1859,7 @@ HoneyBADGER$methods(
             } else {
                 rgs <- union(gr, sr)
             }
-            
+
             retest <- lapply(seq_len(length(rgs)), function(i) {
                 x <- calcCombCnvProb(region=rgs[i], m=dev, verbose=verbose, ...)
                 list(x[[1]], x[[2]])
@@ -1878,21 +1878,27 @@ HoneyBADGER$methods(
 #' @param geneBased Boolean of whether to summarize gene-based results
 #' @param alleleBased Boolean of whether to summarize allele-based results
 #' @param min.num.cells CNV must be present in this minimum number of cells
-#' 
+#' @param t Minimum probability threshold for call
+#'
 HoneyBADGER$methods(
-    summarizeResults=function(geneBased=TRUE, alleleBased=FALSE, min.num.cells=2) {
+    summarizeResults=function(geneBased=TRUE, alleleBased=FALSE, min.num.cells=2, t=0.75) {
         if(geneBased & !alleleBased) {
             rgs <- cnvs[['gene-based']][['all']]
             retest <- results[['gene-based']]
             amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
             del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-            
+            df <- cbind(as.data.frame(rgs),
+                        avg.amp.gexp=rowMeans(amp.gexp.prob),
+                        avg.del.gexp=rowMeans(del.gexp.prob),
+                        amp.gexp.prob,
+                        del.gexp.prob)
+
             ## filter to regions with at least some highly confident cells
-            vi1 <- rowSums(amp.gexp.prob > 0.75) > min.num.cells
+            vi1 <- rowSums(amp.gexp.prob > t) > min.num.cells
             amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
-            vi2 <- rowSums(del.gexp.prob > 0.75) > min.num.cells
+            vi2 <- rowSums(del.gexp.prob > t) > min.num.cells
             del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
-            
+
             names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
             rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
             rownames(del.gexp.prob) <- paste0('del', names[vi2])
@@ -1900,28 +1906,27 @@ HoneyBADGER$methods(
             cnvs[['gene-based']][['amp']] <<- rgs[vi1]
             cnvs[['gene-based']][['del']] <<- rgs[vi2]
             summary[['gene-based']] <<- ret
-            
+
             colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
             colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
-            df <- cbind(as.data.frame(rgs), avg.amp.gexp=rowMeans(amp.gexp.prob), avg.del.gexp=rowMeans(del.gexp.prob), amp.gexp.prob, del.gexp.prob)
-            
+
         }
         if(alleleBased & !geneBased) {
             rgs <- cnvs[['allele-based']][['all']]
             retest <- results[['allele-based']]
             del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
-            
+            df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
+
             ## filter to regions with at least some highly confident cells
-            vi1 <- rowSums(del.loh.allele.prob > 0.75) > min.num.cells
+            vi1 <- rowSums(del.loh.allele.prob > t) > min.num.cells
             del.loh.allele.prob <- del.loh.allele.prob[vi1,] ## amplifications
-            
+
             names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
             rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
             cnvs[['allele-based']][['del.loh']] <<- rgs[vi1]
             summary[['allele-based']] <<- del.loh.allele.prob
-            
+
             colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
-            df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
         }
         if(alleleBased & geneBased) {
             rgs <- cnvs[['combine-based']][['all']]
@@ -1929,25 +1934,26 @@ HoneyBADGER$methods(
             retest <- results[['combine-based']]
             amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
             del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-            
+
+            df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
+
             ## filter to regions with at least some highly confident cells
-            vi1 <- rowSums(amp.comb.prob > 0.75) > min.num.cells
+            vi1 <- rowSums(amp.comb.prob > t) > min.num.cells
             amp.comb.prob <- amp.comb.prob[vi1,] ## amplifications
-            vi2 <- rowSums(del.comb.prob > 0.75) > min.num.cells
+            vi2 <- rowSums(del.comb.prob > t) > min.num.cells
             del.comb.prob <- del.comb.prob[vi2,] ## amplifications
-            
+
             names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
             rownames(amp.comb.prob) <- paste0('amp', names[vi1])
             rownames(del.comb.prob) <- paste0('del', names[vi2])
             ret <- rbind(del.comb.prob, amp.comb.prob)
-            
+
             cnvs[['combine-based']][['amp']] <<- rgs[vi1]
             cnvs[['combine-based']][['del']] <<- rgs[vi2]
             summary[['combine-based']] <<- ret
-            
+
             colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
             colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
-            df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
         }
         return(df)
     }
@@ -1963,7 +1969,7 @@ HoneyBADGER$methods(
 #' @param power Parameter to tweak clustering by weighing posterior probabilities
 #' @param details Boolean whether to return details
 #' @param ... Additional parameters to pass to heatmap
-#' 
+#'
 HoneyBADGER$methods(
   visualizeResults=function(geneBased=TRUE, alleleBased=FALSE, hc=NULL, vc=NULL, power=1, details=FALSE, ...) {
     if(geneBased & !alleleBased) {
@@ -1973,16 +1979,16 @@ HoneyBADGER$methods(
       df <- summary[['allele-based']]
     }
     if(alleleBased & geneBased) {
-      df <- summary[['combine-based']]   
+      df <- summary[['combine-based']]
     }
-    
-    ## visualize as heatmap 
+
+    ## visualize as heatmap
     if(is.null(hc)) {
       hc <- hclust(dist(t(df^(power))), method='ward.D')
-    } 
+    }
     if(is.null(vc)) {
       vc <- hclust(dist(df^(power)), method='ward.D')
-    } 
+    }
     heatmap(t(df), Colv=as.dendrogram(vc), Rowv=as.dendrogram(hc), scale="none", col=colorRampPalette(c('beige', 'grey', 'black'))(100), ...)
     if(details) {
       return(list(hc=hc, vc=vc))

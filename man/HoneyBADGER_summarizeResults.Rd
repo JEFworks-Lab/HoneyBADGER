@@ -9,6 +9,8 @@
 \item{alleleBased}{Boolean of whether to summarize allele-based results}
 
 \item{min.num.cells}{CNV must be present in this minimum number of cells}
+
+\item{t}{Minimum probability threshold for call}
 }
 \description{
 Summarize results
