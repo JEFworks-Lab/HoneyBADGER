@@ -11,7 +11,7 @@ Preparing allele data
 
 To run the allele-based model, you will need matrices of heterozygous SNP counts. Specifically, we will need the counts of the reference allele, alternate allele, and total coverage for each SNP in each cell. Functions within the `HoneyBADGER` package `getSnpMats`, `getAlleleCount`, and `getCellAlleleCount` will help you create these matrices given a list of indexed bams where each cell corresponds to one bam (common for single-cell datasets generated from plate-based approaches), or a single bam with multiple cell barcodes (common for droplet-based single-cell datasets).
 
-Heterozygous SNP positions will also need to be provided. These will ideally obtained from previous WES data from the same sample. When WES data from the same sample is not available, common heterozygous SNPs can be derived from databses such as [ExAC database](http://exac.broadinstitute.org/).
+Heterozygous SNP positions will also need to be provided. These will ideally obtained from previous WES data from the same sample. When WES data from the same sample is not available, common heterozygous SNPs can be derived from databases such as [ExAC database](http://exac.broadinstitute.org/).
 
 In this example, we will create a list of heterozygous SNPs as GRanges from a VCF file:
 
@@ -29,7 +29,7 @@ vcf <- readVcf(vcfFile, "hg19", param=param)
 snps <- rowData(vcf)
 # AF is the allele frequency for each alternate allele
 info <- info(vcf)
-maf <- info[, 'AF'] 
+maf <- info[, 'AF']
 # limit to common snps by MAF (ie. > 10% in population)
 maft <- 0.1
 vi <- sapply(maf, function(x) any(x > maft))
@@ -76,10 +76,10 @@ path <- "data-raw/"
 files <- list.files(path = path)
 # list of paths to bam files
 bamFiles <- files[grepl('.bam$', files)]
-bamFiles <- paste0(path, bamFiles) 
+bamFiles <- paste0(path, bamFiles)
 # list of paths to index files
-indexFiles <- files[grepl('.bai$', files)] 
-indexFiles <- paste0(path, indexFiles) 
+indexFiles <- files[grepl('.bai$', files)]
+indexFiles <- paste0(path, indexFiles)
 
 results <- getSnpMats(snps, bamFiles, indexFiles)
 ```
@@ -102,7 +102,7 @@ To run the expression-based model, we recommend quantification by counts transfo
 Accomodating 10X Data
 =====================
 
-For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformmed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.
+For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.
 
 ``` r
 results <- getCellAlleleCount(snps, bamFile, indexFile, cellBarcodes)

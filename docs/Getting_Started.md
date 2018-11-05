@@ -20,9 +20,9 @@ vignette: |
 library(HoneyBADGER)
 ```
 
-`HoneyBADGER` identifies and quantitatively infers the presence of CNV and LOH events in single cells using allele and normalized expression information from single-cell RNA-seq data. In this tutorial, we will use `HoneyBADGER` to detect CNVs in glioblastoma tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). The single-cell RNA-seq data has been prepared for you and is included in the `HoneyBADGER` package. 
+`HoneyBADGER` identifies and quantitatively infers the presence of CNV and LOH events in single cells using allele and normalized expression information from single-cell RNA-seq data. In this tutorial, we will use `HoneyBADGER` to detect CNVs in glioblastoma tumor cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). The single-cell RNA-seq data has been prepared for you and is included in the `HoneyBADGER` package.
 
-First, load the gene expression matrices for tumor cells along with a normal expression reference derived from averaging normal brain samples found in [GTex](https://www.gtexportal.org/home/). Also load a corresponding biomaRt instance (for human) to obtain chromosomal coordinate information for our genes. 
+First, load the gene expression matrices for tumor cells along with a normal expression reference derived from averaging normal brain samples found in [GTex](https://www.gtexportal.org/home/). Also load a corresponding biomaRt instance (for human) to obtain chromosomal coordinate information for our genes.
 
 
 ```r
@@ -49,7 +49,7 @@ print(ref[1:5])
 ```
 
 ```
-##       AAAS      AADAT      AAGAB       AAK1       AAMP 
+##       AAAS      AADAT      AAGAB       AAK1       AAMP
 ##  0.2962768  2.3082946 -1.1061789  2.6374479  1.9192140
 ```
 
@@ -63,7 +63,7 @@ print(mart.obj)
 ##  Using the hsapiens_gene_ensembl dataset
 ```
 
-Make a new `HoneyBADGER` object and initialize the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling. 
+Make a new `HoneyBADGER` object and initialize the gene expression matrices. The data has already been filtered for highly expressed shared genes and scaled for library size differences so we can override the default filtering and scaling.
 
 
 ```r
@@ -72,12 +72,12 @@ hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE, verbose=TRUE)
 ```
 
 ```
-## Initializing expression matrices ... 
-## Normalizing gene expression for 6082 genes and 75 cells ... 
+## Initializing expression matrices ...
+## Normalizing gene expression for 6082 genes and 75 cells ...
 ## Done setting initial expression matrices!
 ```
 
-The inputted gene expression matrix is normalized using the reference such that we may expect large-scale deviations in expression from the reference on average to be indicative of underlying CNVs. We can visualize the smoothed gene expression using the following profile. 
+The inputted gene expression matrix is normalized using the reference such that we may expect large-scale deviations in expression from the reference on average to be indicative of underlying CNVs. We can visualize the smoothed gene expression using the following profile.
 
 
 ```r
@@ -141,7 +141,7 @@ print(regions.genes)
 ##   seqinfo: 78 sequences from an unspecified genome; no seqlengths
 ```
 
-Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell. We can cluster cells on these posterior probabilities and visualize them as a heatmap. 
+Indeed, our initial HMM has identified a number of candidate CNVs to test. We can now retest all identified CNVs on all cells to derive the final posterior probability of each CNV in each cell. We can cluster cells on these posterior probabilities and visualize them as a heatmap.
 
 
 ```r
@@ -163,13 +163,13 @@ print(head(results[,1:5]))
 ```
 
 ```r
-## visualize as heatmap 
+## visualize as heatmap
 trees <- hb$visualizeResults(geneBased=TRUE, alleleBased=FALSE, details=TRUE, margins=c(25,15))
 ```
 
 ![plot of chunk unnamed-chunk-10](figure/Getting_Started/unnamed-chunk-10-1.png)
 
-We can again visualize our results, this time, ordering the cells based on their posterior probabilities of harboring CNVs. 
+We can again visualize our results, this time, ordering the cells based on their posterior probabilities of harboring CNVs.
 
 
 ```r
@@ -195,9 +195,9 @@ hb$plotGexpProfile(cellOrder=order, region=hb$cnvs[['gene-based']][['del']])
 
 ![plot of chunk unnamed-chunk-11](figure/Getting_Started/unnamed-chunk-11-3.png)
 
-We thus confidently identify amplifications on Chr 5, 7, 20 and deletions on Chr 10, 13, and 14 affecting a subset of cells. 
+We thus confidently identify amplifications on Chr 5, 7, 20 and deletions on Chr 10, 13, and 14 affecting a subset of cells.
 
-We can also identify CNVs using allele information. The allele model relies on persistent allelic imbalance detected from putative heterozygous variants to identify CNVs. Therefore, allele data for common heterozygous variants from ExAC for the same set of cells has also been prepared for you. Add them to your existing `HoneyBADGER` object. 
+We can also identify CNVs using allele information. The allele model relies on persistent allelic imbalance detected from putative heterozygous variants to identify CNVs. Therefore, allele data for common heterozygous variants from ExAC for the same set of cells has also been prepared for you. Add them to your existing `HoneyBADGER` object.
 
 
 ```r
@@ -208,7 +208,7 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene) ## in order to map SNPs to genes
 txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
 ```
 
-The allele matrices have already been filtered for sites with coverage in any cell and where both annotated alleles are observed. We will filter these SNPs further to guard against potential RNA-editing or sequencing errors before mapping them to genes. 
+The allele matrices have already been filtered for sites with coverage in any cell and where both annotated alleles are observed. We will filter these SNPs further to guard against potential RNA-editing or sequencing errors before mapping them to genes.
 
 
 ```r
@@ -218,14 +218,14 @@ hb$setAlleleMats(r.init=r, n.sc.init=cov.sc, het.deviance.threshold=0.1, n.cores
 ```
 
 ```
-## Initializing allele matrices ... 
-## Creating in-silico bulk ... 
-## using 75 cells ... 
-## Filtering for putative heterozygous snps ... 
-## allowing for a 0.1 deviation from the expected 0.5 heterozygous allele fraction ... 
-## must have coverage in at least 3 cells ... 
-## 5359 heterozygous SNPs identified 
-## Setting composite lesser allele count ... 
+## Initializing allele matrices ...
+## Creating in-silico bulk ...
+## using 75 cells ...
+## Filtering for putative heterozygous snps ...
+## allowing for a 0.1 deviation from the expected 0.5 heterozygous allele fraction ...
+## must have coverage in at least 3 cells ...
+## 5359 heterozygous SNPs identified
+## Setting composite lesser allele count ...
 ## Done setting initial allele matrices!
 ```
 
@@ -234,17 +234,17 @@ hb$setGeneFactors(txdb) ## map SNPs to genes
 ```
 
 ```
-## Mapping snps to genes ... 
-## >> preparing features information...		 2018-01-06 12:50:05 
-## >> identifying nearest features...		 2018-01-06 12:50:05 
-## >> calculating distance from peak to TSS...	 2018-01-06 12:50:05 
-## >> assigning genomic annotation...		 2018-01-06 12:50:05 
-## >> assigning chromosome lengths			 2018-01-06 12:50:07 
-## >> done...					 2018-01-06 12:50:07 
+## Mapping snps to genes ...
+## >> preparing features information...		 2018-01-06 12:50:05
+## >> identifying nearest features...		 2018-01-06 12:50:05
+## >> calculating distance from peak to TSS...	 2018-01-06 12:50:05
+## >> assigning genomic annotation...		 2018-01-06 12:50:05
+## >> assigning chromosome lengths			 2018-01-06 12:50:07
+## >> done...					 2018-01-06 12:50:07
 ## Done mapping snps to genes!
 ```
 
-We can visualize the allelic patterns using the following lesser allele fraction profile. 
+We can visualize the allelic patterns using the following lesser allele fraction profile.
 
 
 ```r
@@ -257,7 +257,7 @@ hb$plotAlleleProfile() ## visualize individual SNPs
 #hb$plotSmoothedAlleleProfile() ## smoothed option for high density data
 ```
 
-Here, each row is again a single cell. Each column is a SNP. Dot size illustrates coverage at the SNP site and color denotes the allele bias with yellow meaning equal observation of both alleles. Blue is mono-allelic detection of either the lesser allele, defined as the allele that is less frequently observed across our population of cells. And red being the other allele. In the presence of a deletion, we expect to see persistent depletion of this lesser allele across our population of cells harboring the deletion. Indeed, we again can already visually suspect some chromosomal abnormalities on Chr 10, 13, and 14. To provide a more quantitative assessment, we can again use an HMM approach to identify regions affected by these deletions and LOHs. 
+Here, each row is again a single cell. Each column is a SNP. Dot size illustrates coverage at the SNP site and color denotes the allele bias with yellow meaning equal observation of both alleles. Blue is mono-allelic detection of either the lesser allele, defined as the allele that is less frequently observed across our population of cells. And red being the other allele. In the presence of a deletion, we expect to see persistent depletion of this lesser allele across our population of cells harboring the deletion. Indeed, we again can already visually suspect some chromosomal abnormalities on Chr 10, 13, and 14. To provide a more quantitative assessment, we can again use an HMM approach to identify regions affected by these deletions and LOHs.
 
 
 ```r
@@ -317,13 +317,13 @@ print(head(results[,1:5]))
 ```
 
 ```r
-## visualize as heatmap 
+## visualize as heatmap
 trees2 <- hb$visualizeResults(geneBased=FALSE, alleleBased=TRUE, details=TRUE, margins=c(25,15))
 ```
 
 ![plot of chunk unnamed-chunk-16](figure/Getting_Started/unnamed-chunk-16-1.png)
 
-We can again visualize our results, this time, ordering the cells based on our previously identified cell ordering for comparison. 
+We can again visualize our results, this time, ordering the cells based on our previously identified cell ordering for comparison.
 
 
 ```r
@@ -346,18 +346,18 @@ hb$plotAlleleProfile(cellOrder=order, region=hb$cnvs[['allele-based']][['del.loh
 
 ```r
 ## compare to new order
-hb$plotAlleleProfile(cellOrder=order2) 
+hb$plotAlleleProfile(cellOrder=order2)
 ```
 
 ![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-3.png)
 
 ```r
-hb$plotGexpProfile(cellOrder=order2) 
+hb$plotGexpProfile(cellOrder=order2)
 ```
 
 ![plot of chunk unnamed-chunk-17](figure/Getting_Started/unnamed-chunk-17-4.png)
 
-Thus, we confirm the deletion on Chr 10, 13, and 14 in agreement with our expression-based approach. While an allele-based approach is not able to identify amplifications like an expression-based approach, we are generally able to have improved resolution for identifying smaller deletions such as the one on Chr 19. 
+Thus, we confirm the deletion on Chr 10, 13, and 14 in agreement with our expression-based approach. While an allele-based approach is not able to identify amplifications like an expression-based approach, we are generally able to have improved resolution for identifying smaller deletions such as the one on Chr 19.
 
 Leveraging both allele and expression information can improve power and allow us to identify potential copy-neutral LOHs. We can test regions identified by either the expression or allele-based HMMs using both expression and allele information and repeat downstream visualizations as desired.
 
