@@ -360,7 +360,7 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
 #'
 #' @export
 #' 
-getSnpMats10X <- function(snps, bamFiles, indexFiles, barcodes, n.cores=1, verbose=FALSE) {
+getSnpMats10X <- function(snps, bamFile, indexFile, barcodes, n.cores=1, verbose=FALSE) {
   
   ## loop
   cov <- getCoverage(snps, bamFile, indexFile, verbose)
