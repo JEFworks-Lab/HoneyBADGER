@@ -87,9 +87,9 @@ results <- getSnpMats(snps, bamFiles, indexFiles)
 `getSnpMats` creates a matrix of SNP coverage as well as reference and allele count for use in our `HoneyBADGER` allele model.
 
 ``` r
-ref <- results$refCount
-alt <- results$altCount
-cov <- results$cov
+r <- results$refCount
+#cov <- results$cov
+cov <- results$refCount + results$altCount ## alternatively
 ```
 
 Preparing gene expression data
@@ -105,11 +105,44 @@ Accomodating 10X Data
 For 10X data, you can use the output of `CellRanger`. For example, the `Gene / cell matrix (filtered)` can be normalized to CPMs and log transformmed to serve as the gene expression matrix. For the allele matrix, `Genome-aligned BAM` and `Genome-aligned BAM index` will be used as `bamFile` and `indexFile` respectively. However, as all cells will be contained in the same bam, we will use a different function to get the allele counts for each cell `getCellAlleleCount`. The column names of the expression matrix will be your cell barcodes `cellBarcodes`.
 
 ``` r
-results <- getCellAlleleCount(snps, bamFile, indexFile, cellBarcodes)
+results <- getSnpMats10X(snps, bamFile, indexFile, cellBarcodes)
+r <- results$refCount
+cov <- results$refCount + results$altCount
 ```
 
 An alternative and much faster way of obtaining these allele-specific count tables is with the [scAlleleCount package](https://github.com/barkasn/scAlleleCount). Once installed you can issue the following command to obtain the tables:
 
 ``` r
 results <- getFastCellAlleleCount(snps, bamFile, cellBarcodes)
+```
+
+Additional trouble shooting
+=====================
+
+If you are using the set of ExAC SNPs that comes with the `HoneyBADGER` package, you may need to remove certain chromosomes from the `seqlevels` depending on your hg19 build.
+
+``` r
+library(HoneyBADGER)
+load(system.file("ExAC", "ExAC_chr1.RData", package = "HoneyBADGER"))
+## ignore alt contigs (restrict to autosomes here)
+vi <- seqlevels(snps) %in% as.character(c(1:22))
+table(vi)
+seqlevels(snps) <- seqlevels(snps)[vi]
+```
+
+The chromosome names used in your `snps` parameter needs to match the chromosome names used in your aligned `bams`. In this example, 10X used non-canonical chromosome names (other than UCSC RefSeq or Ensemble annotations) in order to distinguish human from mouse so we need to modify the `seqlevels` to match.
+
+``` r
+# need to match snp name with seqlevel in bam
+seqlevels(snps) <- paste0('hg19_', seqlevels(snps))
+```
+
+To obtain a set of valid cell barcodes from 10X, you can use 10X Cell Ranger's whitelisted set of barcodes. However, most of these will not be present in your bam (because none of the cells sequenced have the barcode). So alternatively, you can restrict to the set of filtered barcodes with corresponding expression counts. 
+
+``` r
+## whitelist
+cellBarcodes <- readLines('cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellranger/barcodes/737K-august-2016.txt')
+## from filtered expression matrix
+cellBarcodes <- readLines(gzfile('filtered_feature_bc_matrix/barcodes.tsv.gz')) ## barcodes with expression counts (filtered)
+head(cellBarcodes)
 ```
