@@ -72,7 +72,10 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #'
 #' @param gr GenomicRanges object for positions of interest
 #' @param bamFile bam file containing all cells indexed by barcode (such as 10X)
-#' @param cellBarcodes vector of valid cell barcodes annotated as CB in the bam 
+#' @param cellBarcodes vector of valid cell barcodes  
+#' @param tag BAM tag used to identify cells (e.g. 
+#'            'CB' = Chromium cellular barcode sequence that is error-corrected and confirmed against a list of known-good barcode sequences.
+#'            'CR' = Chromium cellular barcode sequence as reported by the sequencer)
 #' @param indexFile bai index file
 #' @param verbose Boolean of whether or not to print progress and info
 #' @param n.cores Number of cores; Can parallelize across cells
@@ -95,50 +98,61 @@ getAlleleCount <- function (gr, bamFile, indexFile, verbose = FALSE) {
 #'
 #' @export
 #' 
-getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, verbose = FALSE, n.cores=1) {
+getCellAlleleCount <- function (gr, bamFile, indexFile, cellBarcodes, tag = 'CB', verbose = FALSE, n.cores = 1) {
   df <- data.frame(seqnames(gr), ranges(gr))
-  names <- paste(df$seqnames.gr., paste(df$start, df$end, sep='-'), sep=':')
+  names <- paste(df$seqnames.gr., paste(df$start, df$end, sep = "-"), 
+                 sep = ":")
   if (verbose) {
     print("Getting allele counts for...")
     print(names)
   }
-  
-  pp <- PileupParam(distinguish_strands = FALSE, distinguish_nucleotides = TRUE, max_depth = 1e+07, min_base_quality = 20, min_mapq = 10)
+  pp <- PileupParam(distinguish_strands = FALSE, distinguish_nucleotides = TRUE, 
+                    max_depth = 1e+07, min_base_quality = 20, min_mapq = 10)
   if (verbose) {
     print("Getting pileup...")
   }
-  
   counts <- mclapply(cellBarcodes, function(cell) {
-    sbp <- ScanBamParam(tagFilter = list('CB'=cell), which=gr)
-    pu <- pileup(file = bamFile, index = indexFile, scanBamParam = sbp, pileupParam = pp)
-    
+    tf <- list(cell); names(tf) <- tag
+    sbp <- ScanBamParam(tagFilter = tf, which = gr)
+    pu <- pileup(file = bamFile, index = indexFile, scanBamParam = sbp, 
+                 pileupParam = pp)
     if (verbose) {
-      print(paste0("Getting allele read counts for ", cell, "..."))
+      print(paste0("Getting allele read counts for ", cell, 
+                   "..."))
     }
     refCount <- unlist(lapply(seq_along(names), function(i) {
-      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$REF)$x[i])
-      if(length(b)==0) { return(0) } # neither allele observed
-      else if(sum(b)==0) { return(0) } # alt allele observed only
-      else { return(pu[pu$which_label==names[i],]$count[b]) }
+      b = as.character(pu[pu$which_label == names[i], ]$nucleotide) == 
+        as.character(as.data.frame(gr$REF)$x[i])
+      if (length(b) == 0) {
+        return(0)
+      }
+      else if (sum(b) == 0) {
+        return(0)
+      }
+      else {
+        return(pu[pu$which_label == names[i], ]$count[b])
+      }
     }))
     altCount <- unlist(lapply(seq_along(names), function(i) {
-      b = as.character(pu[pu$which_label==names[i],]$nucleotide) == as.character(as.data.frame(gr$ALT)$value[i])
-      if(length(b)==0) { return(0) } # neither allele observed
-      else if(sum(b)==0) { return(0) } # ref allele observed only
-      else { return(pu[pu$which_label==names[i],]$count[b]) }
+      b = as.character(pu[pu$which_label == names[i], ]$nucleotide) == 
+        as.character(as.data.frame(gr$ALT)$value[i])
+      if (length(b) == 0) {
+        return(0)
+      }
+      else if (sum(b) == 0) {
+        return(0)
+      }
+      else {
+        return(pu[pu$which_label == names[i], ]$count[b])
+      }
     }))
     names(refCount) <- names(altCount) <- names
-    
-    #if (verbose) {
-    #    print("Done!")
-    #}
-    return(list('ref'=refCount, 'alt'=altCount))
-  }, mc.cores=n.cores)
+    return(list(ref = refCount, alt = altCount))
+  }, mc.cores = n.cores)
   refCount <- do.call(cbind, lapply(counts, function(x) x$ref))
   altCount <- do.call(cbind, lapply(counts, function(x) x$alt))
   colnames(refCount) <- colnames(altCount) <- cellBarcodes
-  
-  return(list('ref'=refCount, 'alt'=altCount))
+  return(list(ref = refCount, alt = altCount))
 }
 
 
@@ -308,9 +322,12 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
 #' @param snps GenomicRanges object for positions of interest
 #' @param bamFiles list of bam file
 #' @param indexFiles list of bai index file
+#' @param barcodes Vector of possible cell barcodes 
+#' @param tag BAM tag used to identify cells (e.g. 
+#'            'CB' = Chromium cellular barcode sequence that is error-corrected and confirmed against a list of known-good barcode sequences.
+#'            'CR' = Chromium cellular barcode sequence as reported by the sequencer)
 #' @param n.cores number of cores
 #' @param verbose Boolean of whether or not to print progress and info
-#' @param barcodes Cell barcodes 
 #' 
 #' @return
 #'   refCount reference allele count matrix for each cell and each position of interest
@@ -360,45 +377,33 @@ getSnpMats <- function(snps, bamFiles, indexFiles, n.cores=1, verbose=FALSE) {
 #'
 #' @export
 #' 
-getSnpMats10X <- function(snps, bamFile, indexFile, barcodes, n.cores=1, verbose=FALSE) {
-  
-  ## loop
+getSnpMats10X <- function (snps, bamFile, indexFile, barcodes, tag = 'CB', verbose = FALSE, n.cores = 1) {
   cov <- getCoverage(snps, bamFile, indexFile, verbose)
-  
-  ## any coverage?
-  if(verbose) {
+  if (verbose) {
     print("Snps with coverage:")
-    print(table(cov>0))
+    print(table(cov > 0))
   }
-  vi <- cov>0
-  if(sum(vi)==0) {
-    print('ERROR: NO SNPS WITH COVERAGE. Check if snps and bams are using the same alignment reference.')
+  vi <- cov > 0
+  if (sum(vi) == 0) {
+    print("ERROR: NO SNPS WITH COVERAGE. Check if snps and bams are using the same alignment reference.")
     return(NULL)
   }
   cov <- cov[vi]
-  snps.cov <- snps[vi,]
-  
-  if(verbose) {
+  snps.cov <- snps[vi, ]
+  if (verbose) {
     print("Getting allele counts...")
   }
-  alleleCount <- getCellAlleleCount(snps.cov, bamFile, indexFile, barcodes, verbose=TRUE, n.cores=n.cores)
+  alleleCount <- getCellAlleleCount(snps.cov, bamFile, indexFile, 
+                                    barcodes, verbose = verbose, n.cores = n.cores, tag = tag)
   refCount <- alleleCount[[1]]
   altCount <- alleleCount[[2]]
-  
-  ## check correspondence
-  if(verbose) {
+  if (verbose) {
     print("altCount + refCount == cov:")
     print(table(altCount + refCount == cov))
     print("altCount + refCount < cov: sequencing errors")
     print(table(altCount + refCount < cov))
-    ##vi <- which(altCount + refCount != cov, arr.ind=TRUE)
-    ## some sequencing errors evident
-    ##altCount[vi]
-    ##refCount[vi]
-    ##cov[vi]
   }
-  
-  results <- list(refCount=refCount, altCount=altCount, cov=cov)
+  results <- list(refCount = refCount, altCount = altCount, 
+                  cov = cov)
   return(results)
 }
-
