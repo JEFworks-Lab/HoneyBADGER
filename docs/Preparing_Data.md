@@ -146,3 +146,11 @@ cellBarcodes <- readLines('cellranger-3.1.0/cellranger-cs/3.1.0/lib/python/cellr
 cellBarcodes <- readLines(gzfile('filtered_feature_bc_matrix/barcodes.tsv.gz')) ## barcodes with expression counts (filtered)
 head(cellBarcodes)
 ```
+
+---
+
+# Additional tutorials
+- [Getting started](Getting_Started.md)
+- [Integrating with other analyses](Integrating.md)
+- [Interactive visualization](https://jef.works/blog/2018/04/15/interactive-honeybadger-laf-profiles/)
+

@@ -366,3 +366,11 @@ Leveraging both allele and expression information can improve power and allow us
 hb$retestIdentifiedCnvs(retestBoundGenes=TRUE, retestBoundSnps=TRUE, verbose=FALSE)
 results <- hb$summarizeResults(geneBased=TRUE, alleleBased=TRUE)
 ```
+
+---
+
+# Additional Tutorials
+- [Preparing data](Preparing_Data.md)
+- [Integrating with other analyses](Integrating.md)
+- [Interactive visualization](https://jef.works/blog/2018/04/15/interactive-honeybadger-laf-profiles/)
+

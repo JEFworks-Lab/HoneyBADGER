@@ -450,3 +450,11 @@ gexp.plot <- plotGexpProfile(gexp.mats$gexp.norm,
 ![](figure/Integrating/unnamed-chunk-19-5.png)
 
 In conclusion, we have used `HoneyBADGER` to identify and quantitatively assess the presence of CNVs in glioblastoma cells from patient MGH31 from [Patel et al](http://science.sciencemag.org/content/344/6190/1396). Because `HoneyBADGER` infers CNVs from transcriptomic data, we are able to directly compare the transcriptional profiles of identified genetic subclones. Integrative analyses need not be limited to just the sample differential expression and gene set enrichment analyses presented here. Other interesting characterizations of [differential alternative splicing between genetic subclones](https://github.com/JEFworks/Supplementary-Code/tree/master/jcell201607025), [differences in transcriptional velocity and trajectories among subclones](http://velocyto.org/), and even [integration with other -omics datasets](https://github.com/JEFworks/Supplementary-Code/tree/master/snDropSeq_scTHSseq) may also be of interest.
+
+---
+
+# Additional tutorials
+- [Preparing data](Preparing_Data.md)
+- [Getting started](Getting_Started.md)
+- [Interactive visualization](https://jef.works/blog/2018/04/15/interactive-honeybadger-laf-profiles/)
+

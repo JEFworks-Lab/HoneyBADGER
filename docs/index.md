@@ -9,7 +9,7 @@ layout: default
 `HoneyBADGER` (**h**idden Markov model integrated **B**ayesian **a**pproach for **d**etecting CNV and LOH events from sin**g**le-c**e**ll **R**NA-seq data) identifies and infers the presence of CNV and LOH events in single cells and reconstructs subclonal architecture using allele and expression information from single-cell RNA-sequencing data. 
 
 The overall approach is detailed in the following publication:  
-[Fan J, Lee HO, Lee S, et al. Linking transcriptional and genetic tumor heterogeneity through allele analysis of single-cell RNA-seq data. Genome Res. 2018;](https://genome.cshlp.org/content/early/2018/06/13/gr.228080.117)
+[Fan J*, Lee HO*, Lee S, et al. Linking transcriptional and genetic tumor heterogeneity through allele analysis of single-cell RNA-seq data. Genome Res. 2018;](https://genome.cshlp.org/content/early/2018/06/13/gr.228080.117)
 
 ---
 
