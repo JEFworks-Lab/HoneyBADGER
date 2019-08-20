@@ -26,7 +26,7 @@ param <- ScanVcfParam(which=testRanges)
 # Be sure to use the correct genome species/version
 vcf <- readVcf(vcfFile, "hg19", param=param)
 
-snps <- rowData(vcf)
+snps <- rowRanges(vcf) 
 # AF is the allele frequency for each alternate allele
 info <- info(vcf)
 maf <- info[, 'AF'] 
@@ -36,6 +36,7 @@ vi <- sapply(maf, function(x) any(x > maft))
 snps <- snps[vi,]
 # get rid of non single nucleotide changes
 vi <- width(snps@elementMetadata$REF) == 1
+# result should be GRanges object
 snps <- snps[vi,]
 ```
 
