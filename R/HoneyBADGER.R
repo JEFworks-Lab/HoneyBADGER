@@ -1885,75 +1885,110 @@ HoneyBADGER$methods(
         if(geneBased & !alleleBased) {
             rgs <- cnvs[['gene-based']][['all']]
             retest <- results[['gene-based']]
+            
             amp.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
             del.gexp.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-            df <- cbind(as.data.frame(rgs),
-                        avg.amp.gexp=rowMeans(amp.gexp.prob),
-                        avg.del.gexp=rowMeans(del.gexp.prob),
-                        amp.gexp.prob,
+            df <- cbind(as.data.frame(rgs), avg.amp.gexp = rowMeans(amp.gexp.prob), 
+                        avg.del.gexp = rowMeans(del.gexp.prob), amp.gexp.prob, 
                         del.gexp.prob)
-
-            ## filter to regions with at least some highly confident cells
+            names <- apply(as.data.frame(rgs), 1, paste0, collapse = ":")
             vi1 <- rowSums(amp.gexp.prob > t) > min.num.cells
-            amp.gexp.prob <- amp.gexp.prob[vi1,] ## amplifications
+            if(sum(vi1) > 1) {
+              amp.gexp.prob <- amp.gexp.prob[vi1, ]
+              rownames(amp.gexp.prob) <- paste0("amp", names[vi1])
+              colnames(amp.gexp.prob) <- paste0("amp.gexp.", colnames(amp.gexp.prob))
+            } else if (sum(vi) == 1) {
+              amp.gexp.prob <- t(amp.gexp.prob[vi1, ])
+              rownames(amp.gexp.prob) <- paste0("amp", names[vi1])
+              colnames(amp.gexp.prob) <- paste0("amp.gexp.", colnames(amp.gexp.prob))
+            } else {
+              amp.gexp.prob <- c()
+            }
             vi2 <- rowSums(del.gexp.prob > t) > min.num.cells
-            del.gexp.prob <- del.gexp.prob[vi2,] ## amplifications
-
-            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-            rownames(amp.gexp.prob) <- paste0('amp', names[vi1])
-            rownames(del.gexp.prob) <- paste0('del', names[vi2])
+            if(sum(vi2) > 1) {
+              del.gexp.prob <- del.gexp.prob[vi2, ]
+              rownames(del.gexp.prob) <- paste0("del", names[vi2])
+              colnames(del.gexp.prob) <- paste0("del.gexp.", colnames(del.gexp.prob))
+            } else if (sum(vi) == 1) {
+              del.gexp.prob <- t(del.gexp.prob[vi2, ])
+              rownames(del.gexp.prob) <- paste0("del", names[vi2])
+              colnames(del.gexp.prob) <- paste0("del.gexp.", colnames(del.gexp.prob))
+            } else {
+              del.gexp.prob <- c()
+            }
+            
             ret <- rbind(del.gexp.prob, amp.gexp.prob)
-            cnvs[['gene-based']][['amp']] <<- rgs[vi1]
-            cnvs[['gene-based']][['del']] <<- rgs[vi2]
-            summary[['gene-based']] <<- ret
-
-            colnames(amp.gexp.prob) <- paste0('amp.gexp.', colnames(amp.gexp.prob))
-            colnames(del.gexp.prob) <- paste0('del.gexp.', colnames(del.gexp.prob))
+            cnvs[["gene-based"]][["amp"]] <<- rgs[vi1]
+            cnvs[["gene-based"]][["del"]] <<- rgs[vi2]
+            summary[["gene-based"]] <<- ret
 
         }
         if(alleleBased & !geneBased) {
             rgs <- cnvs[['allele-based']][['all']]
             retest <- results[['allele-based']]
+            
             del.loh.allele.prob <- do.call(rbind, lapply(retest, function(x) x))
-            df <- cbind(as.data.frame(rgs), avg.del.loh.allele=rowMeans(del.loh.allele.prob), del.loh.allele.prob)
+            df <- cbind(as.data.frame(rgs), 
+                        avg.del.loh.allele=rowMeans(del.loh.allele.prob), 
+                        del.loh.allele.prob)
 
             ## filter to regions with at least some highly confident cells
             vi1 <- rowSums(del.loh.allele.prob > t) > min.num.cells
-            del.loh.allele.prob <- del.loh.allele.prob[vi1,] ## amplifications
-
-            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-            rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
+            if(sum(vi1) > 1) {
+              del.loh.allele.prob <- del.loh.allele.prob[vi1,] 
+              rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
+              colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
+            } else if (sum(vi) == 1) {
+              del.loh.allele.prob <- t(del.loh.allele.prob[vi1,])
+              rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
+              colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
+            } else {
+              del.loh.allele.prob <- c()
+            }
+            
             cnvs[['allele-based']][['del.loh']] <<- rgs[vi1]
             summary[['allele-based']] <<- del.loh.allele.prob
 
-            colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
         }
         if(alleleBased & geneBased) {
             rgs <- cnvs[['combine-based']][['all']]
-
             retest <- results[['combine-based']]
+            
             amp.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[1]]))
             del.comb.prob <- do.call(rbind, lapply(retest, function(x) x[[2]]))
-
-            df <- cbind(as.data.frame(rgs), avg.amp.comb=rowMeans(amp.comb.prob), avg.del.comb=rowMeans(del.comb.prob), amp.comb.prob, del.comb.prob)
-
-            ## filter to regions with at least some highly confident cells
+            df <- cbind(as.data.frame(rgs), avg.amp.comb = rowMeans(amp.comb.prob), 
+                        avg.del.comb = rowMeans(del.comb.prob), amp.comb.prob, 
+                        del.comb.prob)
+            names <- apply(as.data.frame(rgs), 1, paste0, collapse = ":")
             vi1 <- rowSums(amp.comb.prob > t) > min.num.cells
-            amp.comb.prob <- amp.comb.prob[vi1,] ## amplifications
+            if(sum(vi1) > 1) {
+              amp.comb.prob <- amp.comb.prob[vi1, ]
+              rownames(amp.comb.prob) <- paste0("amp", names[vi1])
+              colnames(amp.comb.prob) <- paste0("amp.comb.", colnames(amp.comb.prob))
+            } else if (sum(vi) == 1) {
+              amp.comb.prob <- t(amp.comb.prob[vi1, ])
+              rownames(amp.comb.prob) <- paste0("amp", names[vi1])
+              colnames(amp.comb.prob) <- paste0("amp.comb.", colnames(amp.comb.prob))
+            } else {
+              amp.comb.prob <- c()
+            }
             vi2 <- rowSums(del.comb.prob > t) > min.num.cells
-            del.comb.prob <- del.comb.prob[vi2,] ## amplifications
-
-            names <- apply(as.data.frame(rgs), 1, paste0, collapse=":")
-            rownames(amp.comb.prob) <- paste0('amp', names[vi1])
-            rownames(del.comb.prob) <- paste0('del', names[vi2])
+            if(sum(vi2) > 1) {
+              del.comb.prob <- del.comb.prob[vi2, ]
+              rownames(del.comb.prob) <- paste0("del", names[vi2])
+              colnames(del.comb.prob) <- paste0("del.comb.", colnames(del.comb.prob))
+            } else if (sum(vi) == 1) {
+              del.comb.prob <- t(del.comb.prob[vi2, ])
+              rownames(del.comb.prob) <- paste0("del", names[vi2])
+              colnames(del.comb.prob) <- paste0("del.comb.", colnames(del.comb.prob))
+            } else {
+              del.comb.prob <- c()
+            }
+            
             ret <- rbind(del.comb.prob, amp.comb.prob)
-
             cnvs[['combine-based']][['amp']] <<- rgs[vi1]
             cnvs[['combine-based']][['del']] <<- rgs[vi2]
             summary[['combine-based']] <<- ret
-
-            colnames(amp.comb.prob) <- paste0('amp.comb.', colnames(amp.comb.prob))
-            colnames(del.comb.prob) <- paste0('del.comb.', colnames(del.comb.prob))
         }
         return(df)
     }

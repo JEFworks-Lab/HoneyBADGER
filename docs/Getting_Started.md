@@ -30,7 +30,8 @@ data(gexp) ## tumor cells
 data(ref) ## reference
 
 require(biomaRt) ## for gene coordinates
-mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org")
+#mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl', host = "jul2015.archive.ensembl.org") ## version used in manuscript
+mart.obj <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = 'hsapiens_gene_ensembl') ## current version
 
 print(gexp[1:5,1:5])
 ```
@@ -110,10 +111,10 @@ hb$calcGexpCnvBoundaries(init=TRUE, verbose=FALSE) ## HMM
 ```
 
 ```
-## ERROR: Error: subscript contains invalid names
-## ERROR: Error: subscript contains invalid names
-## ERROR: Error: subscript contains invalid names
-## ERROR: Error: subscript contains invalid names
+Loading required package: rjags
+Loading required package: coda
+Linked to JAGS 4.3.0
+Loaded modules: basemod,bugs
 ```
 
 ```r
