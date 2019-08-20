@@ -7,5 +7,7 @@ citEntry(entry = "Article",
 	journal="Genome research",
 	publisher="Cold Spring Harbor Laboratory Press",
 	year="2018",
-	month="Aug"
+	month="Aug",
+	doi="10.1101/gr.228080.117",
+	textVersion = "Fan et al. Linking transcriptional and genetic tumor heterogeneity through allele analysis of single-cell RNA-seq data. Genome research (2018) doi:10.1101/gr.228080.117"
 )
