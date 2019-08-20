@@ -1,0 +1,11 @@
+citHeader("To cite HoneyBADGER in publications, please use:")
+
+citEntry(entry = "Article",
+	title= "Linking transcriptional and genetic tumor heterogeneity through allele analysis of single-cell RNA-seq data",
+	author="Jean Fan*, Hae-Ock Lee*, Soohyun Lee, Da-eun Ryu, Semin Lee, Catherine Xue, Seok Jin Kim, Kihyun Kim, Nikolas Barkas, Peter J Park, Woong-Yang Park and Peter V Kharchenko",
+	url= "https://www.ncbi.nlm.nih.gov/pubmed/29898899",
+	journal="Genome research",
+	publisher="Cold Spring Harbor Laboratory Press",
+	year="2018",
+	month="Aug"
+}
