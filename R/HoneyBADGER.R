@@ -1897,7 +1897,7 @@ HoneyBADGER$methods(
               amp.gexp.prob <- amp.gexp.prob[vi1, ]
               rownames(amp.gexp.prob) <- paste0("amp", names[vi1])
               colnames(amp.gexp.prob) <- paste0("amp.gexp.", colnames(amp.gexp.prob))
-            } else if (sum(vi) == 1) {
+            } else if (sum(vi1) == 1) {
               amp.gexp.prob <- t(amp.gexp.prob[vi1, ])
               rownames(amp.gexp.prob) <- paste0("amp", names[vi1])
               colnames(amp.gexp.prob) <- paste0("amp.gexp.", colnames(amp.gexp.prob))
@@ -1909,7 +1909,7 @@ HoneyBADGER$methods(
               del.gexp.prob <- del.gexp.prob[vi2, ]
               rownames(del.gexp.prob) <- paste0("del", names[vi2])
               colnames(del.gexp.prob) <- paste0("del.gexp.", colnames(del.gexp.prob))
-            } else if (sum(vi) == 1) {
+            } else if (sum(vi2) == 1) {
               del.gexp.prob <- t(del.gexp.prob[vi2, ])
               rownames(del.gexp.prob) <- paste0("del", names[vi2])
               colnames(del.gexp.prob) <- paste0("del.gexp.", colnames(del.gexp.prob))
@@ -1938,7 +1938,7 @@ HoneyBADGER$methods(
               del.loh.allele.prob <- del.loh.allele.prob[vi1,] 
               rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
               colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
-            } else if (sum(vi) == 1) {
+            } else if (sum(vi1) == 1) {
               del.loh.allele.prob <- t(del.loh.allele.prob[vi1,])
               rownames(del.loh.allele.prob) <- paste0('del.loh.', names[vi1])
               colnames(del.loh.allele.prob) <- paste0('del.loh.allele.', colnames(del.loh.allele.prob))
@@ -1965,7 +1965,7 @@ HoneyBADGER$methods(
               amp.comb.prob <- amp.comb.prob[vi1, ]
               rownames(amp.comb.prob) <- paste0("amp", names[vi1])
               colnames(amp.comb.prob) <- paste0("amp.comb.", colnames(amp.comb.prob))
-            } else if (sum(vi) == 1) {
+            } else if (sum(vi1) == 1) {
               amp.comb.prob <- t(amp.comb.prob[vi1, ])
               rownames(amp.comb.prob) <- paste0("amp", names[vi1])
               colnames(amp.comb.prob) <- paste0("amp.comb.", colnames(amp.comb.prob))
@@ -1977,7 +1977,7 @@ HoneyBADGER$methods(
               del.comb.prob <- del.comb.prob[vi2, ]
               rownames(del.comb.prob) <- paste0("del", names[vi2])
               colnames(del.comb.prob) <- paste0("del.comb.", colnames(del.comb.prob))
-            } else if (sum(vi) == 1) {
+            } else if (sum(vi2) == 1) {
               del.comb.prob <- t(del.comb.prob[vi2, ])
               rownames(del.comb.prob) <- paste0("del", names[vi2])
               colnames(del.comb.prob) <- paste0("del.comb.", colnames(del.comb.prob))
