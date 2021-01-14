@@ -1065,7 +1065,6 @@ HoneyBADGER$methods(
         plot(pvs, devs, xlab="p-value", ylab="deviation", xlim=c(0,1))
       }
       fit <- lm(devs ~ pvs)
-      pvs <- as.numeric(pvs)
       optim.dev <- predict(fit, newdata=data.frame(pvs=alpha))
       if(verbose) {
         cat('Optimal deviance: ')
