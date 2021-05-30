@@ -106,7 +106,7 @@ calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.
   I.j <- unlist(lapply(genes2snps.dict, length))
   numGenes <- length(genes2snps.dict)
   numSnpsPerGene <- max(I.j)
-  numCells <- ncol(r)
+  numCells <- ncol(r.maf)
   ## j, i, k
   r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
   for(i in seq_len(numGenes)) {
