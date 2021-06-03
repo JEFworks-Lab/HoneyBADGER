@@ -106,7 +106,7 @@ calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.
   I.j <- unlist(lapply(genes2snps.dict, length))
   numGenes <- length(genes2snps.dict)
   numSnpsPerGene <- max(I.j)
-  numCells <- ncol(r.maf)
+  numCells <- ncol(r.maf)## original name error --Rongting
   ## j, i, k
   r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
   for(i in seq_len(numGenes)) {
@@ -146,7 +146,7 @@ calcCombCnvProb=function(gexp.norm, genes, mvFit, m=0.15, r.maf, n.sc, l.maf, n.
     'n.bulk' = n.bulk.array,
     'n.sc' = n.sc.array,
     'J' = length(I.j),  # how many genes
-    'K' = ncol(r),  # how many cells
+    'K' = ncol(r.maf),  # how many cells # name error Rongting
     'I.j' = I.j,
     'pseudo' = pe,
     'mono' = mono,
