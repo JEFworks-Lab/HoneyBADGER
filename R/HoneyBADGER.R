@@ -1697,7 +1697,7 @@ HoneyBADGER$methods(
         I.j <- unlist(lapply(genes2snps.dict, length))
         numGenes <- length(genes2snps.dict)
         numSnpsPerGene <- max(I.j)
-        numCells <- ncol(r)
+        numCells <- ncol(r.maf)
         ## j, i, k
         r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
         for(i in seq_len(numGenes)) {
@@ -1737,7 +1737,7 @@ HoneyBADGER$methods(
             'n.bulk' = n.bulk.array,
             'n.sc' = n.sc.array,
             'J' = length(I.j),  # how many genes
-            'K' = ncol(r),  # how many cells
+            'K' = ncol(r.maf),  # how many cells
             'I.j' = I.j,
             'pseudo' = pe,
             'mono' = mono,
