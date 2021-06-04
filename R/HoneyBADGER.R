@@ -118,8 +118,10 @@ HoneyBADGER <- setRefClass(
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #'
+# minMeanBoth=0, minMeanTest=mean(gexp.sc.init[gexp.sc.init!=0]), minMeanRef=mean(gexp.ref.init[gexp.ref.init!=0]),
+# minMeanBoth=4.5, minMeanTest=6, minMeanRef=8,
 HoneyBADGER$methods(
-    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
+    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=0, minMeanTest=mean(gexp.sc.init[gexp.sc.init!=0]), minMeanRef=mean(gexp.ref.init[gexp.ref.init!=0]), scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
         if(verbose) {
           cat("Initializing expression matrices ... \n")
         }
