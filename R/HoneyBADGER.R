@@ -1857,9 +1857,9 @@ HoneyBADGER$methods(
             gr <- range(genes[unlist(bound.genes.final),])
             sr <- range(snps[unlist(bound.snps.final),])
             if(intersect) {
-                rgs <- intersect(gr, sr)
+                rgs <- GenomicRanges::intersect(gr, sr)
             } else {
-                rgs <- union(gr, sr)
+                rgs <- GenomicRanges::union(gr, sr)
             }
 
             retest <- lapply(seq_len(length(rgs)), function(i) {
