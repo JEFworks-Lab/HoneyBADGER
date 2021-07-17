@@ -92,7 +92,7 @@ setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMean
         return(
             list(
                 gexp.sc = gexp.sc,
-                gexp.red = gexp.ref,
+                gexp.ref = gexp.ref,
                 gexp.norm = gexp.norm,
                 genes = genes
             )
