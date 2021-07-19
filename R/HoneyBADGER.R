@@ -118,8 +118,10 @@ HoneyBADGER <- setRefClass(
 #' hb <- HoneyBADGER$new()
 #' hb$setGexpMats(gexp, ref, mart.obj, filter=FALSE, scale=FALSE)
 #'
+# minMeanBoth=0, minMeanTest=mean(gexp.sc.init[gexp.sc.init!=0]), minMeanRef=mean(gexp.ref.init[gexp.ref.init!=0]),
+# minMeanBoth=4.5, minMeanTest=6, minMeanRef=8,
 HoneyBADGER$methods(
-    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=4.5, minMeanTest=6, minMeanRef=8, scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
+    setGexpMats=function(gexp.sc.init, gexp.ref.init, mart.obj, filter=TRUE, minMeanBoth=0, minMeanTest=mean(gexp.sc.init[gexp.sc.init!=0]), minMeanRef=mean(gexp.ref.init[gexp.ref.init!=0]), scale=TRUE, id="hgnc_symbol", verbose=TRUE) {
         if(verbose) {
           cat("Initializing expression matrices ... \n")
         }
@@ -1697,7 +1699,7 @@ HoneyBADGER$methods(
         I.j <- unlist(lapply(genes2snps.dict, length))
         numGenes <- length(genes2snps.dict)
         numSnpsPerGene <- max(I.j)
-        numCells <- ncol(r)
+        numCells <- ncol(r.maf)
         ## j, i, k
         r.array <- array(0, c(numGenes, numSnpsPerGene, numCells))
         for(i in seq_len(numGenes)) {
@@ -1737,7 +1739,7 @@ HoneyBADGER$methods(
             'n.bulk' = n.bulk.array,
             'n.sc' = n.sc.array,
             'J' = length(I.j),  # how many genes
-            'K' = ncol(r),  # how many cells
+            'K' = ncol(r.maf),  # how many cells
             'I.j' = I.j,
             'pseudo' = pe,
             'mono' = mono,
@@ -1855,9 +1857,9 @@ HoneyBADGER$methods(
             gr <- range(genes[unlist(bound.genes.final),])
             sr <- range(snps[unlist(bound.snps.final),])
             if(intersect) {
-                rgs <- intersect(gr, sr)
+                rgs <- GenomicRanges::intersect(gr, sr)
             } else {
-                rgs <- union(gr, sr)
+                rgs <- GenomicRanges::union(gr, sr)
             }
 
             retest <- lapply(seq_len(length(rgs)), function(i) {
